@@ -23,21 +23,39 @@ const refEpicerie = collection(db, 'epicerie')
 const refFavoris = collection(db, 'favoris')
 const refDepenses = collection(db, 'depenses')
 const refRepas = collection(db, 'repas')
+const refRecettes = collection(db, 'recettes')
+const refRappels = collection(db, 'rappels')
 const refConfig = doc(db, 'config', 'general')
 
 const sections = [
-  { id: 'checklist', label: 'Checklist', titre: 'Checklist déménagement' },
-  { id: 'taches', label: 'Tâches', titre: 'Tâches ménagères' },
-  { id: 'repas', label: 'Repas', titre: 'Repas de la semaine' },
-  { id: 'epicerie', label: 'Épicerie', titre: "Liste d'épicerie" },
-  { id: 'depenses', label: 'Dépenses', titre: 'Dépenses' }
+  { id: 'accueil', label: 'Accueil', icon: 'ph-house-line' },
+  { id: 'checklist', label: 'Checklist', icon: 'ph-check-square-offset' },
+  { id: 'repas', label: 'Repas', icon: 'ph-fork-knife' },
+  { id: 'epicerie', label: 'Épicerie', icon: 'ph-shopping-cart' },
+  { id: 'depenses', label: 'Dépenses', icon: 'ph-wallet' }
 ]
 
-const categoriesChecklist = ['Chambre', 'Salle de bain', 'Cuisine', 'Salon', 'Tout', 'Nourriture']
+const categoriesChecklist = [
+  { cat: 'Chambre', icon: 'ph-bed' },
+  { cat: 'Salle de bain', icon: 'ph-bathtub' },
+  { cat: 'Cuisine', icon: 'ph-cooking-pot' },
+  { cat: 'Salon', icon: 'ph-armchair' },
+  { cat: 'Tout', icon: 'ph-house-line' },
+  { cat: 'Nourriture', icon: 'ph-bowl-food' }
+]
 const categoriesEpicerie = ['Fruits et légumes', 'Produits laitiers', 'Viandes et poissons', 'Épicerie', 'Surgelés', 'Autres']
-const categoriesDepenses = ['Loyer', 'Épicerie', 'Internet/Téléphone', 'Restaurant', 'Autre']
+const categoriesDepenses = [
+  { cat: 'Loyer', icon: 'ph-house-line' },
+  { cat: 'Épicerie', icon: 'ph-shopping-cart' },
+  { cat: 'Internet/Téléphone', icon: 'ph-wifi-high' },
+  { cat: 'Restaurant', icon: 'ph-fork-knife' },
+  { cat: 'Autre', icon: 'ph-receipt' }
+]
 const frequences = { hebdo: 'chaque semaine', mensuel: 'chaque mois' }
 const noms_mois = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
+const abrev_mois = ['janv', 'févr', 'mars', 'avr', 'mai', 'juin', 'juil', 'août', 'sept', 'oct', 'nov', 'déc']
+const noms_jours_courts = ['dim', 'lun', 'mar', 'mer', 'jeu', 'ven', 'sam']
+const noms_jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
 const moments = [
   { id: 'dejeuner', label: 'Déjeuner' },
   { id: 'diner', label: 'Dîner' },
@@ -45,59 +63,93 @@ const moments = [
 ]
 
 const items_depart = [
-  ['Chambre', 'Lit et matelas'],
-  ['Chambre', 'Couverture et draps'],
-  ['Chambre', 'Oreillers'],
-  ['Chambre', 'Table de chevet'],
-  ['Chambre', 'Lumière'],
-  ['Chambre', 'Cadran'],
-  ['Chambre', 'Armoire'],
-  ['Chambre', 'Cintres'],
-  ['Chambre', 'Miroir'],
-  ['Chambre', 'Store et rideaux'],
-  ['Chambre', 'Panier à linge'],
-  ['Salle de bain', 'Serviettes de corps et à main'],
-  ['Salle de bain', 'Produits nettoyants salle de bain'],
-  ['Salle de bain', 'Produit pour laveuse'],
-  ['Salle de bain', 'Savon à main'],
-  ['Salle de bain', 'Rideau de douche et tringle'],
-  ['Salle de bain', 'Tapis de bain'],
+  ['Chambre', 'Lit et matelas'], ['Chambre', 'Couverture et draps'], ['Chambre', 'Oreillers'],
+  ['Chambre', 'Table de chevet'], ['Chambre', 'Lumière'], ['Chambre', 'Cadran'], ['Chambre', 'Armoire'],
+  ['Chambre', 'Cintres'], ['Chambre', 'Miroir'], ['Chambre', 'Store et rideaux'], ['Chambre', 'Panier à linge'],
+  ['Salle de bain', 'Serviettes de corps et à main'], ['Salle de bain', 'Produits nettoyants salle de bain'],
+  ['Salle de bain', 'Produit pour laveuse'], ['Salle de bain', 'Savon à main'],
+  ['Salle de bain', 'Rideau de douche et tringle'], ['Salle de bain', 'Tapis de bain'],
   ['Salle de bain', 'Papier de toilette'],
-  ['Cuisine', 'Grille-pain, cafetière ou micro-onde'],
-  ['Cuisine', 'Vaisselle (bols et assiettes)'],
-  ['Cuisine', 'Verres'],
-  ['Cuisine', 'Ustensiles'],
-  ['Cuisine', 'Chaudrons'],
-  ['Cuisine', 'Poêlons'],
-  ['Cuisine', 'Planches à découper'],
-  ['Cuisine', 'Contenants de conservation'],
-  ['Cuisine', 'Produit nettoyant vaisselle'],
-  ['Cuisine', 'Sacs à poubelle'],
-  ['Salon', 'Divan'],
-  ['Salon', 'Tapis'],
-  ['Salon', 'Télé'],
-  ['Salon', 'Table à café'],
-  ['Salon', "Lampes d'appoint"],
-  ['Tout', 'Poubelle'],
-  ['Tout', 'Balai, vadrouille, aspirateur'],
-  ['Tout', 'Trousse de premiers soins'],
+  ['Cuisine', 'Grille-pain, cafetière ou micro-onde'], ['Cuisine', 'Vaisselle (bols et assiettes)'],
+  ['Cuisine', 'Verres'], ['Cuisine', 'Ustensiles'], ['Cuisine', 'Chaudrons'], ['Cuisine', 'Poêlons'],
+  ['Cuisine', 'Planches à découper'], ['Cuisine', 'Contenants de conservation'],
+  ['Cuisine', 'Produit nettoyant vaisselle'], ['Cuisine', 'Sacs à poubelle'],
+  ['Salon', 'Divan'], ['Salon', 'Tapis'], ['Salon', 'Télé'], ['Salon', 'Table à café'], ['Salon', "Lampes d'appoint"],
+  ['Tout', 'Poubelle'], ['Tout', 'Balai, vadrouille, aspirateur'], ['Tout', 'Trousse de premiers soins'],
   ['Tout', 'Ampoules de rechange'],
-  ['Nourriture', 'Épices de base'],
-  ['Nourriture', 'Huile à cuisson'],
-  ['Nourriture', 'Café ou thé']
+  ['Nourriture', 'Épices de base'], ['Nourriture', 'Huile à cuisson'], ['Nourriture', 'Café ou thé']
 ]
+
+const rappels_depart = [
+  { nom: 'Poubelles', quand: 'mardi, 19 h', icon: 'ph-trash', actif: true },
+  { nom: 'Loyer', quand: 'le 1er de chaque mois, 9 h', icon: 'ph-house-line', actif: true },
+  { nom: 'Planifier les repas', quand: 'dimanche, 11 h', icon: 'ph-fork-knife', actif: true }
+]
+
+// — utilitaires —
 
 function escapeHtml(str) {
   const div = document.createElement('div')
-  div.textContent = str || ''
+  div.textContent = str == null ? '' : str
   return div.innerHTML
 }
 
-// profil (Léonie ou Gabriel)
+function argent(n) {
+  const [ent, dec] = (Math.round(n * 100) / 100).toFixed(2).split('.')
+  return ent.replace(/\B(?=(\d{3})+(?!\d))/g, '\u202f') + ',' + dec + ' $'
+}
+
+function iconeChecklist(cat) {
+  const trouve = categoriesChecklist.find(c => c.cat === cat)
+  return trouve ? trouve.icon : 'ph-package'
+}
+
+function iconeDepense(cat) {
+  const trouve = categoriesDepenses.find(c => c.cat === cat)
+  return trouve ? trouve.icon : 'ph-receipt'
+}
+
+function formatDateISO(d) {
+  const mois = String(d.getMonth() + 1).padStart(2, '0')
+  const jour = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${mois}-${jour}`
+}
+
+function moisActuelCle() {
+  return formatDateISO(new Date()).slice(0, 7)
+}
+
+function formatMois(cle) {
+  const [an, mois] = cle.split('-')
+  return `${noms_mois[parseInt(mois, 10) - 1]} ${an}`
+}
+
+// — état local —
+
+let checklistItems = []
+let tachesItems = []
+let epicerieItems = []
+let favoris = []
+let depensesItems = []
+let repasItems = []
+let recettes = []
+let rappels = []
+let dateCible = ''
+let pret = false
+
+let ongletActuel = 'accueil'
+let checklistOuvert = null
+let epicerieRecherche = ''
+let repasOuvert = null
+let semaineDebut = lundiDeCetteSemaine(new Date())
+let moisSelectionne = moisActuelCle()
+let magasinageOuvert = false
 
 function currentName() {
   return localStorage.getItem('app-appart-nom') || ''
 }
+
+// — profil —
 
 function ouvrirProfil() {
   document.getElementById('profil-overlay').style.display = 'flex'
@@ -107,235 +159,446 @@ function fermerProfil() {
   document.getElementById('profil-overlay').style.display = 'none'
 }
 
-function choisirProfil(nom) {
-  localStorage.setItem('app-appart-nom', nom)
-  document.getElementById('nom-btn').textContent = nom
-  fermerProfil()
-  renderDepenses()
-}
-
 document.querySelectorAll('.profil-bouton').forEach(btn => {
-  btn.onclick = () => choisirProfil(btn.dataset.nom)
+  btn.onclick = () => {
+    localStorage.setItem('app-appart-nom', btn.dataset.nom)
+    fermerProfil()
+    rendre()
+  }
 })
 
-document.getElementById('nom-btn').onclick = ouvrirProfil
-
-// thème clair / sombre
-
-function basculerTheme() {
-  const actuel = document.documentElement.getAttribute('data-theme')
-  const estSombre = actuel ? actuel === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
-  const nouveau = estSombre ? 'light' : 'dark'
-  localStorage.setItem('app-appart-theme', nouveau)
-  document.documentElement.setAttribute('data-theme', nouveau)
-  document.getElementById('theme-toggle').textContent = nouveau === 'dark' ? '☀️' : '🌙'
+document.getElementById('profil-overlay').onclick = (e) => {
+  if (e.target.id === 'profil-overlay' && currentName()) fermerProfil()
 }
 
-document.getElementById('theme-toggle').onclick = basculerTheme
-
-const themeSauvegarde = localStorage.getItem('app-appart-theme')
-if (themeSauvegarde) document.documentElement.setAttribute('data-theme', themeSauvegarde)
-const themeEstSombre = themeSauvegarde ? themeSauvegarde === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
-document.getElementById('theme-toggle').textContent = themeEstSombre ? '☀️' : '🌙'
-
-// navigation
+// — navigation —
 
 function goTo(id) {
+  ongletActuel = id
   sections.forEach(s => {
     document.getElementById('section-' + s.id).classList.toggle('active', s.id === id)
   })
-  document.querySelectorAll('#nav button').forEach(b => {
-    b.classList.toggle('active', b.dataset.id === id)
+  document.querySelectorAll('#tabbar button').forEach(b => {
+    const actif = b.dataset.id === id
+    b.classList.toggle('active', actif)
+    const i = b.querySelector('i')
+    i.className = (actif ? 'ph-fill ' : 'ph ') + b.dataset.icon
   })
-  document.getElementById('titre').textContent = sections.find(s => s.id === id).titre
+  window.scrollTo(0, 0)
 }
 
 function setupNav() {
-  const nav = document.getElementById('nav')
-  sections.forEach(s => {
-    const btn = document.createElement('button')
-    btn.dataset.id = s.id
-    btn.innerHTML = '<span class="dot"></span>' + s.label
-    btn.onclick = () => goTo(s.id)
-    nav.appendChild(btn)
+  const nav = document.getElementById('tabbar')
+  nav.innerHTML = sections.map(s => `
+    <button type="button" data-id="${s.id}" data-icon="${s.icon}">
+      <i class="ph ${s.icon}"></i>
+      <span>${s.label}</span>
+      ${s.id === 'epicerie' ? '<span class="badge" id="badge-epicerie" style="display:none"></span>' : ''}
+    </button>`).join('')
+  nav.querySelectorAll('button').forEach(b => {
+    b.onclick = () => goTo(b.dataset.id)
   })
-  goTo('checklist')
+  goTo('accueil')
 }
 
-// checklist (avec compte à rebours, lien et note par item)
+function majBadge() {
+  const badge = document.getElementById('badge-epicerie')
+  if (!badge) return
+  const n = epicerieItems.filter(i => !i.fait).length
+  badge.textContent = n
+  badge.style.display = n > 0 ? '' : 'none'
+}
 
-let checklistItems = []
-let dateCible = ''
-let checklistOuvert = null
+// — en-tête réutilisable —
 
-function renderCompteARebours() {
-  let texte = 'Ajoute une date pour voir le compte à rebours'
-  if (dateCible) {
-    const jours = Math.ceil((new Date(dateCible) - new Date(new Date().toDateString())) / 86400000)
-    if (jours > 0) texte = `${jours} jour${jours > 1 ? 's' : ''} avant le déménagement`
-    else if (jours === 0) texte = "C'est aujourd'hui !"
-    else texte = 'Le déménagement est passé'
-  }
-  return `<div class="balance countdown">
-    <span>${texte}</span>
-    <input type="date" id="date-cible" value="${dateCible || ''}">
+function enTete(titre, sous, actions) {
+  return `<div class="head">
+    <div>
+      <h1>${titre}</h1>
+      ${sous ? `<div class="sub">${sous}</div>` : ''}
+    </div>
+    <div class="head-actions">${actions || ''}</div>
   </div>`
 }
 
+const boutonsEnTete = `
+  <button type="button" class="icon-btn" data-action="rappels"><i class="ph ph-bell"></i></button>
+  <button type="button" class="icon-btn" data-action="profil">${escapeHtml(currentName().charAt(0) || '?')}</button>`
+
+function brancherEnTete(container) {
+  const rappelsBtn = container.querySelector('[data-action="rappels"]')
+  if (rappelsBtn) rappelsBtn.onclick = ouvrirRappels
+  const profilBtn = container.querySelector('[data-action="profil"]')
+  if (profilBtn) profilBtn.onclick = ouvrirProfil
+}
+
+// — accueil —
+
+function joursRestants() {
+  if (!dateCible) return null
+  return Math.ceil((new Date(dateCible) - new Date(new Date().toDateString())) / 86400000)
+}
+
+function reglement() {
+  const items = itemsPourMois(moisActuelCle())
+  return calculerReglement(items)
+}
+
+function renderAccueil() {
+  const container = document.getElementById('section-accueil')
+  const maintenant = new Date()
+  const faits = checklistItems.filter(i => i.fait).length
+  const total = checklistItems.length || 1
+  const pct = Math.round((faits / total) * 100)
+  const jours = joursRestants()
+  const aFaire = tachesItems.filter(t => !t.fait)
+  const repasAujourdhui = repasItems.find(r => r.id === formatDateISO(maintenant)) || {}
+  const souper = repasAujourdhui.souper && repasAujourdhui.souper.texte
+  const epicerieActifs = epicerieItems.filter(i => !i.fait)
+  const totalEpicerie = epicerieActifs.reduce((a, i) => a + (parseFloat(i.prix) || 0), 0)
+  const { transactions } = reglement()
+  const t0 = transactions[0]
+
+  let html = `<div class="head">
+    <div>
+      <div class="kicker">${noms_jours[maintenant.getDay()]} ${maintenant.getDate()} ${noms_mois[maintenant.getMonth()]}</div>
+      <h1>Aujourd'hui</h1>
+    </div>
+    <div class="head-actions">${boutonsEnTete}</div>
+  </div>
+  <div class="body">
+    <div class="hero">
+      <div class="glow"></div>
+      <div class="hero-top">
+        <div>
+          <div class="big">${jours === null ? '—' : (jours < 0 ? 'C\'est fait' : jours)}</div>
+          <div class="legend">${jours === null ? 'ajoute la date du déménagement' : (jours > 0 ? 'jours avant le déménagement' : (jours === 0 ? "c'est aujourd'hui !" : 'le déménagement est passé'))}</div>
+        </div>
+        <input type="date" id="date-cible" value="${dateCible || ''}">
+      </div>
+      <div class="progress"><span style="width:${pct}%"></span></div>
+      <div class="progress-legend"><span>${faits} des ${checklistItems.length} items prêts</span><span>${pct} %</span></div>
+    </div>
+
+    <div class="section-title"><span>À faire aujourd'hui</span><span>${aFaire.length}</span></div>
+    <div class="card">`
+
+  if (aFaire.length === 0 && !souper) {
+    html += '<p class="empty">Rien de prévu aujourd\'hui</p>'
+  }
+  aFaire.forEach(t => {
+    const recurrente = t.recurrence && t.recurrence !== 'aucune'
+    const meta = [recurrente ? frequences[t.recurrence] : null, t.dernierFaitPar ? 'dernier : ' + escapeHtml(t.dernierFaitPar) : null]
+      .filter(Boolean).join(' · ')
+    html += `<div class="row">
+      <button type="button" class="check" data-tache="${t.id}"><i class="ph-fill ph-check"></i></button>
+      <div class="main"><div class="titre">${escapeHtml(t.texte)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}</div>
+      <i class="ph ph-broom"></i>
+    </div>`
+  })
+  if (souper) {
+    html += `<div class="row">
+      <div class="pill-icon"><i class="ph ph-fork-knife"></i></div>
+      <div class="main"><div class="titre">Souper : ${escapeHtml(souper)}</div><div class="meta">planifié pour ce soir</div></div>
+    </div>`
+  }
+
+  html += `</div>
+    <div class="tiles">
+      <button type="button" class="tile" data-go="depenses">
+        <div class="label"><i class="ph ph-wallet"></i>Solde</div>
+        <div class="valeur">${t0 ? argent(t0.montant) : '0,00 $'}</div>
+        <div class="sous accent">${t0 ? `${escapeHtml(t0.de)} doit à ${escapeHtml(t0.a)}` : 'vous êtes à égalité'}</div>
+      </button>
+      <button type="button" class="tile" data-go="epicerie">
+        <div class="label"><i class="ph ph-shopping-cart"></i>Épicerie</div>
+        <div class="valeur">${epicerieActifs.length} items</div>
+        <div class="sous">${argent(totalEpicerie)} estimé</div>
+      </button>
+    </div>
+    <button type="button" class="btn btn-block" id="accueil-magasiner"><i class="ph ph-shopping-cart"></i>Démarrer le mode magasinage</button>
+  </div>`
+
+  container.innerHTML = html
+  brancherEnTete(container)
+  container.querySelector('#date-cible').onchange = (e) => setDoc(refConfig, { dateCible: e.target.value }, { merge: true })
+  container.querySelectorAll('[data-tache]').forEach(el => {
+    el.onclick = () => cocherTache(el.dataset.tache)
+  })
+  container.querySelectorAll('[data-go]').forEach(el => {
+    el.onclick = () => goTo(el.dataset.go)
+  })
+  container.querySelector('#accueil-magasiner').onclick = ouvrirMagasinage
+}
+
+// — checklist —
+
 function renderChecklist() {
   const container = document.getElementById('section-checklist')
-  let html = renderCompteARebours()
-  categoriesChecklist.forEach(cat => {
+  const faits = checklistItems.filter(i => i.fait).length
+  const total = checklistItems.length
+  const pct = total ? Math.round((faits / total) * 100) : 0
+
+  let html = enTete('Checklist', `${faits} / ${total} · ${total - faits} items restants`, boutonsEnTete) + '<div class="body">'
+
+  categoriesChecklist.forEach(({ cat, icon }) => {
     const liste = checklistItems.filter(i => i.categorie === cat)
     if (liste.length === 0) return
-    html += `<div class="section-title">${cat}</div><div class="card">`
+    const f = liste.filter(i => i.fait).length
+    html += `<div class="card card-pad">
+      <div class="row" style="padding:0 0 12px;border:none;min-height:0">
+        <div class="pill-icon" style="background:transparent;color:var(--accent-light);width:auto;height:auto"><i class="ph ${icon}" style="font-size:20px"></i></div>
+        <div class="main" style="font-size:16px;font-weight:500">${cat}</div>
+        <div class="meta">${f} / ${liste.length}</div>
+      </div>
+      <div class="progress" style="margin-top:0"><span style="width:${Math.round((f / liste.length) * 100)}%"></span></div>
+      <div style="margin-top:6px">`
     liste.forEach(item => {
-      const achete = item.achetePar ? ` <span class="tag">par ${escapeHtml(item.achetePar)}</span>` : ''
-      const badges = [item.lien ? '🔗' : '', item.note ? '📝' : ''].filter(Boolean).join(' ')
-      html += `<div class="item-row${item.fait ? ' done' : ''}">
-        <input type="checkbox" ${item.fait ? 'checked' : ''} data-id="${item.id}">
-        <span>${escapeHtml(item.texte)}${achete}${badges ? ' ' + badges : ''}</span>
-        <button class="detail-btn" type="button" data-id="${item.id}">${checklistOuvert === item.id ? '▲' : '▾'}</button>
-        <button class="remove-btn" data-id="${item.id}">×</button>
+      const badges = [item.lien ? 'lien' : '', item.note ? 'note' : ''].filter(Boolean).join(' · ')
+      html += `<div class="row${item.fait ? ' done' : ''}" style="padding:10px 0;min-height:48px">
+        <button type="button" class="check${item.fait ? ' on' : ''}" data-item="${item.id}"><i class="ph-fill ph-check"></i></button>
+        <div class="main">
+          <div class="titre" style="font-size:14.5px">${escapeHtml(item.texte)}</div>
+          ${item.achetePar || badges ? `<div class="meta">${[item.achetePar ? 'acheté par ' + escapeHtml(item.achetePar) : '', badges].filter(Boolean).join(' · ')}</div>` : ''}
+        </div>
+        <button type="button" class="ghost-btn" data-detail="${item.id}"><i class="ph ph-${checklistOuvert === item.id ? 'caret-up' : 'caret-down'}"></i></button>
+        <button type="button" class="ghost-btn" data-suppr="${item.id}"><i class="ph ph-x"></i></button>
       </div>`
       if (checklistOuvert === item.id) {
-        html += `<div class="jour-edit">
-          <input type="url" class="item-lien" placeholder="Lien (ex: page du produit)" value="${escapeHtml(item.lien)}">
-          <textarea class="item-note" placeholder="Note">${escapeHtml(item.note)}</textarea>
-          <div class="jour-actions">
-            <button type="button" class="item-save-details" data-id="${item.id}">Enregistrer</button>
-          </div>
+        html += `<div class="edit-panel">
+          ${item.lien ? `<a href="${escapeHtml(item.lien)}" target="_blank" rel="noopener"><i class="ph ph-link-simple"></i> ouvrir le lien</a>` : ''}
+          <input class="input item-lien" type="url" placeholder="Lien (page du produit)" value="${escapeHtml(item.lien)}">
+          <textarea class="input item-note" placeholder="Note">${escapeHtml(item.note)}</textarea>
+          <div class="edit-actions"><button type="button" class="btn btn-sm" data-save="${item.id}">Enregistrer</button></div>
         </div>`
       }
     })
-    html += '</div>'
+    html += '</div></div>'
   })
-  html += `<form class="add-row" id="checklist-form">
-    <select id="checklist-categorie">${categoriesChecklist.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
-    <input id="checklist-texte" placeholder="Ajouter un item">
-    <button type="submit">+</button>
-  </form>`
-  container.innerHTML = html
 
-  document.getElementById('date-cible').onchange = (e) => {
-    setDoc(refConfig, { dateCible: e.target.value }, { merge: true })
-  }
-  container.querySelectorAll('input[type=checkbox]').forEach(el => {
-    el.onchange = () => updateDoc(doc(refChecklist, el.dataset.id), {
-      fait: el.checked,
-      achetePar: el.checked ? currentName() : null
-    })
-  })
-  container.querySelectorAll('.remove-btn').forEach(el => {
-    el.onclick = () => deleteDoc(doc(refChecklist, el.dataset.id))
-  })
-  container.querySelectorAll('.detail-btn').forEach(el => {
+  html += `<div class="form-row">
+    <select class="input" id="checklist-categorie">${categoriesChecklist.map(c => `<option value="${c.cat}">${c.cat}</option>`).join('')}</select>
+    <input class="input" id="checklist-texte" placeholder="Ajouter un item">
+    <button type="button" class="btn" id="checklist-ajouter"><i class="ph ph-plus"></i></button>
+  </div>
+  <div class="progress-legend"><span>Progression totale</span><span>${pct} %</span></div>
+  </div>`
+
+  container.innerHTML = html
+  brancherEnTete(container)
+  container.querySelectorAll('[data-item]').forEach(el => {
     el.onclick = () => {
-      checklistOuvert = checklistOuvert === el.dataset.id ? null : el.dataset.id
+      const item = checklistItems.find(i => i.id === el.dataset.item)
+      updateDoc(doc(refChecklist, item.id), { fait: !item.fait, achetePar: !item.fait ? currentName() : null })
+    }
+  })
+  container.querySelectorAll('[data-suppr]').forEach(el => {
+    el.onclick = () => deleteDoc(doc(refChecklist, el.dataset.suppr))
+  })
+  container.querySelectorAll('[data-detail]').forEach(el => {
+    el.onclick = () => {
+      checklistOuvert = checklistOuvert === el.dataset.detail ? null : el.dataset.detail
       renderChecklist()
     }
   })
-  container.querySelectorAll('.item-save-details').forEach(el => {
+  container.querySelectorAll('[data-save]').forEach(el => {
     el.onclick = () => {
-      const id = el.dataset.id
-      const panneau = el.closest('.jour-edit')
-      const lien = panneau.querySelector('.item-lien').value.trim()
-      const note = panneau.querySelector('.item-note').value.trim()
-      updateDoc(doc(refChecklist, id), { lien, note })
+      const panneau = el.closest('.edit-panel')
+      updateDoc(doc(refChecklist, el.dataset.save), {
+        lien: panneau.querySelector('.item-lien').value.trim(),
+        note: panneau.querySelector('.item-note').value.trim()
+      })
       checklistOuvert = null
       renderChecklist()
     }
   })
-  container.querySelector('#checklist-form').onsubmit = (e) => {
-    e.preventDefault()
-    const texte = document.getElementById('checklist-texte').value.trim()
-    const categorie = document.getElementById('checklist-categorie').value
+  const ajouter = () => {
+    const texte = container.querySelector('#checklist-texte').value.trim()
     if (!texte) return
-    addDoc(refChecklist, { texte, categorie, fait: false })
-    document.getElementById('checklist-texte').value = ''
+    addDoc(refChecklist, { texte, categorie: container.querySelector('#checklist-categorie').value, fait: false })
+    container.querySelector('#checklist-texte').value = ''
+  }
+  container.querySelector('#checklist-ajouter').onclick = ajouter
+  container.querySelector('#checklist-texte').onkeydown = (e) => { if (e.key === 'Enter') ajouter() }
+}
+
+// — tâches (dans l'accueil et la checklist des rappels) —
+
+function cocherTache(id) {
+  const item = tachesItems.find(i => i.id === id)
+  if (!item) return
+  if (item.recurrence && item.recurrence !== 'aucune') {
+    updateDoc(doc(refTaches, id), { fait: false, dernierFaitPar: currentName(), dernierFait: formatDateISO(new Date()) })
+  } else {
+    updateDoc(doc(refTaches, id), { fait: !item.fait, faitPar: !item.fait ? currentName() : null })
   }
 }
 
-function initChecklist() {
-  getDocs(refChecklist).then(snap => {
-    if (snap.empty) {
-      items_depart.forEach(([cat, txt]) => addDoc(refChecklist, { texte: txt, categorie: cat, fait: false }))
-    }
-  })
-  onSnapshot(refChecklist, snap => {
-    checklistItems = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    renderChecklist()
-  })
-  onSnapshot(refConfig, snap => {
-    dateCible = snap.exists() ? (snap.data().dateCible || '') : ''
-    renderChecklist()
+// — repas —
+
+function lundiDeCetteSemaine(date) {
+  const d = new Date(date)
+  const jour = d.getDay()
+  d.setDate(d.getDate() + (jour === 0 ? -6 : 1 - jour))
+  d.setHours(0, 0, 0, 0)
+  return d
+}
+
+function envoyerAEpicerie(lignes) {
+  lignes.map(l => l.trim()).filter(Boolean).forEach(ligne => {
+    const dejaLa = epicerieItems.some(i => !i.fait && i.texte.toLowerCase() === ligne.toLowerCase())
+    if (!dejaLa) addDoc(refEpicerie, { texte: ligne, rayon: 'Autres', quantite: '', prix: '', fait: false })
   })
 }
 
-// tâches (liste de rappels, avec récurrence)
+function renderRepas() {
+  const container = document.getElementById('section-repas')
+  const jours = []
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(semaineDebut)
+    d.setDate(d.getDate() + i)
+    jours.push(d)
+  }
+  const aujourdhui = formatDateISO(new Date())
+  const jourSel = repasOuvert ? repasOuvert.split('|')[0] : (jours.some(d => formatDateISO(d) === aujourdhui) ? aujourdhui : formatDateISO(jours[0]))
+  const jourItem = repasItems.find(r => r.id === jourSel) || {}
 
-function renderTaches(items) {
-  const container = document.getElementById('section-taches')
-  let html = '<div class="card">'
-  if (items.length === 0) html += `<p class="empty">Aucune tâche pour l'instant</p>`
-  items.forEach(item => {
-    const recurrente = item.recurrence && item.recurrence !== 'aucune'
-    const freqTag = recurrente ? ` <span class="tag">${frequences[item.recurrence]}</span>` : ''
-    const quiTag = recurrente
-      ? (item.dernierFaitPar ? ` <span class="tag tag-assigne">dernier: ${escapeHtml(item.dernierFaitPar)}</span>` : '')
-      : (item.faitPar ? ` <span class="tag tag-assigne">par ${escapeHtml(item.faitPar)}</span>` : '')
-    html += `<div class="item-row${item.fait ? ' done' : ''}">
-      <input type="checkbox" ${item.fait ? 'checked' : ''} data-id="${item.id}">
-      <span>${escapeHtml(item.texte)}${quiTag}${freqTag}</span>
-      <button class="remove-btn" data-id="${item.id}">×</button>
-    </div>`
+  let html = enTete('Repas', `${jours[0].getDate()} au ${jours[6].getDate()} ${noms_mois[jours[6].getMonth()]}`, `
+    <button type="button" class="icon-btn" id="semaine-prec"><i class="ph ph-caret-left"></i></button>
+    <button type="button" class="icon-btn" id="semaine-suiv"><i class="ph ph-caret-right"></i></button>`)
+
+  html += '<div class="body"><div class="semaine">'
+  jours.forEach(d => {
+    const iso = formatDateISO(d)
+    html += `<button type="button" class="jour-btn${iso === jourSel ? ' on' : ''}" data-jour="${iso}">
+      <div class="j">${noms_jours_courts[d.getDay()]}</div><div class="n">${d.getDate()}</div>
+    </button>`
   })
-  html += `</div>
-  <form class="add-row" id="taches-form">
-    <input id="taches-texte" placeholder="Nouvelle tâche">
-    <select id="taches-recurrence">
-      <option value="aucune">Une fois</option>
-      <option value="hebdo">Chaque semaine</option>
-      <option value="mensuel">Chaque mois</option>
-    </select>
-    <button type="submit">+</button>
-  </form>`
-  container.innerHTML = html
+  html += '</div><div class="card">'
 
-  container.querySelectorAll('input[type=checkbox]').forEach(el => {
-    el.onchange = () => {
-      const item = items.find(i => i.id === el.dataset.id)
-      if (item.recurrence && item.recurrence !== 'aucune') {
-        updateDoc(doc(refTaches, item.id), { fait: false, dernierFaitPar: currentName() })
-      } else {
-        updateDoc(doc(refTaches, item.id), { fait: el.checked, faitPar: el.checked ? currentName() : null })
+  moments.forEach(m => {
+    const repasMoment = jourItem[m.id]
+    const texte = repasMoment && repasMoment.texte
+    const cle = jourSel + '|' + m.id
+    html += `<div class="moment${m.id === 'souper' ? ' souper' : ''}" data-moment="${cle}">
+      <span class="label">${m.label}</span>
+      <span class="texte${texte ? '' : ' vide'}">${texte ? escapeHtml(texte) : 'Ajouter un repas'}</span>
+      ${texte && repasMoment.ingredients ? `<button type="button" class="btn btn-sm btn-quiet" data-envoyer="${cle}"><i class="ph ph-shopping-cart"></i>Épicerie</button>` : '<i class="ph ph-plus" style="color:#595d6c"></i>'}
+    </div>`
+    if (repasOuvert === cle) {
+      html += `<div class="edit-panel">
+        <input class="input" id="repas-texte" placeholder="Nom du repas" value="${escapeHtml(repasMoment ? repasMoment.texte : '')}">
+        <textarea class="input" id="repas-ingredients" placeholder="Ingrédients, un par ligne">${escapeHtml(repasMoment ? repasMoment.ingredients : '')}</textarea>
+        <div class="edit-actions">
+          <button type="button" class="btn btn-sm" data-save-repas="${cle}">Enregistrer</button>
+          <button type="button" class="btn btn-sm btn-quiet" data-save-recette="${cle}"><i class="ph ph-bookmark-simple"></i>Sauver la recette</button>
+          <button type="button" class="btn btn-sm btn-quiet" data-clear-repas="${cle}">Effacer</button>
+        </div>
+      </div>`
+    }
+  })
+
+  html += '</div><div class="section-title"><span>Recettes sauvegardées</span></div>'
+  if (recettes.length === 0) {
+    html += '<div class="card"><p class="empty">Enregistre un repas comme recette pour le réutiliser</p></div>'
+  } else {
+    html += '<div class="recettes">'
+    recettes.slice(0, 3).forEach(r => {
+      const n = (r.ingredients || '').split('\n').filter(l => l.trim()).length
+      html += `<button type="button" class="recette" data-recette="${r.id}">
+        <i class="ph ph-bowl-food"></i>
+        <div class="nom">${escapeHtml(r.texte)}</div>
+        <div class="n">${n} ingrédients</div>
+      </button>`
+    })
+    html += '</div>'
+    if (recettes.length > 3) {
+      html += '<div class="chips">' + recettes.slice(3).map(r => `<span class="chip" data-recette="${r.id}">${escapeHtml(r.texte)}<span class="x" data-suppr-recette="${r.id}">×</span></span>`).join('') + '</div>'
+    }
+  }
+  html += '</div>'
+
+  container.innerHTML = html
+  brancherEnTete(container)
+  container.querySelector('#semaine-prec').onclick = () => {
+    semaineDebut.setDate(semaineDebut.getDate() - 7)
+    repasOuvert = null
+    renderRepas()
+  }
+  container.querySelector('#semaine-suiv').onclick = () => {
+    semaineDebut.setDate(semaineDebut.getDate() + 7)
+    repasOuvert = null
+    renderRepas()
+  }
+  container.querySelectorAll('[data-jour]').forEach(el => {
+    el.onclick = () => {
+      repasOuvert = el.dataset.jour + '|souper'
+      renderRepas()
+    }
+  })
+  container.querySelectorAll('[data-moment]').forEach(el => {
+    el.onclick = (e) => {
+      if (e.target.closest('[data-envoyer]')) return
+      repasOuvert = repasOuvert === el.dataset.moment ? null : el.dataset.moment
+      renderRepas()
+    }
+  })
+  container.querySelectorAll('[data-envoyer]').forEach(el => {
+    el.onclick = (e) => {
+      e.stopPropagation()
+      const [dateStr, moment] = el.dataset.envoyer.split('|')
+      const item = repasItems.find(r => r.id === dateStr) || {}
+      const m = item[moment]
+      if (m && m.ingredients) {
+        envoyerAEpicerie(m.ingredients.split('\n'))
+        goTo('epicerie')
       }
     }
   })
-  container.querySelectorAll('.remove-btn').forEach(el => {
-    el.onclick = () => deleteDoc(doc(refTaches, el.dataset.id))
+  container.querySelectorAll('[data-save-repas]').forEach(el => {
+    el.onclick = () => {
+      const [dateStr, moment] = el.dataset.saveRepas.split('|')
+      const texte = container.querySelector('#repas-texte').value.trim()
+      const ingredients = container.querySelector('#repas-ingredients').value
+      setDoc(doc(refRepas, dateStr), { date: dateStr, [moment]: { texte, ingredients } }, { merge: true })
+      envoyerAEpicerie(ingredients.split('\n'))
+      repasOuvert = null
+      renderRepas()
+    }
   })
-  container.querySelector('#taches-form').onsubmit = (e) => {
-    e.preventDefault()
-    const texte = document.getElementById('taches-texte').value.trim()
-    const recurrence = document.getElementById('taches-recurrence').value
-    if (!texte) return
-    addDoc(refTaches, { texte, fait: false, recurrence })
-    document.getElementById('taches-texte').value = ''
-  }
+  container.querySelectorAll('[data-save-recette]').forEach(el => {
+    el.onclick = () => {
+      const texte = container.querySelector('#repas-texte').value.trim()
+      const ingredients = container.querySelector('#repas-ingredients').value
+      if (!texte) return
+      addDoc(refRecettes, { texte, ingredients })
+    }
+  })
+  container.querySelectorAll('[data-clear-repas]').forEach(el => {
+    el.onclick = () => {
+      const [dateStr, moment] = el.dataset.clearRepas.split('|')
+      setDoc(doc(refRepas, dateStr), { [moment]: null }, { merge: true })
+      repasOuvert = null
+      renderRepas()
+    }
+  })
+  container.querySelectorAll('[data-recette]').forEach(el => {
+    el.onclick = (e) => {
+      if (e.target.dataset.supprRecette) {
+        deleteDoc(doc(refRecettes, e.target.dataset.supprRecette))
+        return
+      }
+      const r = recettes.find(x => x.id === el.dataset.recette)
+      const cible = repasOuvert || (formatDateISO(new Date()) + '|souper')
+      const [dateStr, moment] = cible.split('|')
+      setDoc(doc(refRepas, dateStr), { date: dateStr, [moment]: { texte: r.texte, ingredients: r.ingredients || '' } }, { merge: true })
+      envoyerAEpicerie((r.ingredients || '').split('\n'))
+      repasOuvert = null
+    }
+  })
 }
 
-function initTaches() {
-  onSnapshot(refTaches, snap => {
-    renderTaches(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-  })
-}
-
-// épicerie (rayon, quantité, prix, recherche, favoris)
-
-let epicerieItems = []
-let favoris = []
-let epicerieRecherche = ''
+// — épicerie —
 
 function rayonDe(item) {
   return categoriesEpicerie.includes(item.rayon) ? item.rayon : 'Autres'
@@ -349,241 +612,177 @@ function renderEpicerie() {
   const container = document.getElementById('section-epicerie')
   const recherche = epicerieRecherche.trim().toLowerCase()
   const items = recherche ? epicerieItems.filter(i => i.texte.toLowerCase().includes(recherche)) : epicerieItems
-  const totalEstime = epicerieItems.filter(i => !i.fait && i.prix).reduce((acc, i) => acc + parseFloat(i.prix), 0)
+  const actifs = epicerieItems.filter(i => !i.fait)
+  const totalEstime = actifs.reduce((a, i) => a + (parseFloat(i.prix) || 0), 0)
 
-  let html = `<input type="text" id="epicerie-recherche" class="mois-select" placeholder="Rechercher un item..." value="${escapeHtml(epicerieRecherche)}">`
+  let html = enTete('Épicerie', `${actifs.length} items · ${argent(totalEstime)} estimé`, `
+    <button type="button" class="btn btn-sm" id="ouvrir-magasinage"><i class="ph ph-shopping-cart"></i>Magasiner</button>`)
 
-  if (totalEstime > 0) {
-    html += `<div class="balance"><span>Total estimé à acheter</span><span class="amount">${totalEstime.toFixed(2)} $</span></div>`
-  }
+  html += `<div class="body">
+    <input class="input" id="epicerie-recherche" placeholder="Rechercher un item..." value="${escapeHtml(epicerieRecherche)}">`
 
   if (favoris.length > 0) {
-    html += '<div class="favoris-chips">'
-    favoris.forEach(f => {
-      html += `<span class="chip" data-texte="${escapeHtml(f.texte)}" data-rayon="${escapeHtml(f.rayon)}">${escapeHtml(f.texte)}<span class="chip-x" data-id="${f.id}">×</span></span>`
-    })
-    html += '</div>'
+    html += '<div class="chips">' + favoris.map(f =>
+      `<span class="chip" data-fav-texte="${escapeHtml(f.texte)}" data-fav-rayon="${escapeHtml(f.rayon)}">${escapeHtml(f.texte)}<span class="x" data-fav-suppr="${f.id}">×</span></span>`
+    ).join('') + '</div>'
   }
 
   categoriesEpicerie.forEach(cat => {
     const liste = items.filter(i => rayonDe(i) === cat)
     if (liste.length === 0) return
-    html += `<div class="section-title">${cat}</div><div class="card">`
+    html += `<div><div class="rayon-titre">${cat}</div><div class="card">`
     liste.forEach(item => {
-      const qte = item.quantite ? `${escapeHtml(item.quantite)}x ` : ''
-      const prixTag = item.prix ? ` <span class="tag">${parseFloat(item.prix).toFixed(2)} $</span>` : ''
-      html += `<div class="item-row${item.fait ? ' done' : ''}">
-        <input type="checkbox" ${item.fait ? 'checked' : ''} data-id="${item.id}">
-        <span>${qte}${escapeHtml(item.texte)}${prixTag}</span>
-        <button class="fav-btn" type="button" data-texte="${escapeHtml(item.texte)}" data-rayon="${escapeHtml(rayonDe(item))}">${estFavori(item.texte) ? '★' : '☆'}</button>
-        <button class="remove-btn" data-id="${item.id}">×</button>
+      const meta = [item.quantite ? item.quantite + ' ×' : '', item.prix ? argent(parseFloat(item.prix)) : '', item.fait ? 'dans le panier' : '']
+        .filter(Boolean).join(' · ')
+      html += `<div class="row${item.fait ? ' done' : ''}">
+        <button type="button" class="check round${item.fait ? ' on' : ''}" data-ep="${item.id}"><i class="ph-fill ph-check"></i></button>
+        <div class="main"><div class="titre">${escapeHtml(item.texte)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}</div>
+        <button type="button" class="ghost-btn fav${estFavori(item.texte) ? ' on' : ''}" data-fav="${escapeHtml(item.texte)}" data-rayon="${escapeHtml(rayonDe(item))}"><i class="ph${estFavori(item.texte) ? '-fill' : ''} ph-star"></i></button>
+        <button type="button" class="ghost-btn" data-ep-suppr="${item.id}"><i class="ph ph-x"></i></button>
       </div>`
     })
-    html += '</div>'
+    html += '</div></div>'
   })
-  if (items.length === 0) html += `<div class="card"><p class="empty">${recherche ? 'Aucun résultat' : 'Liste vide'}</p></div>`
 
-  html += `<form class="add-row" id="epicerie-form">
-    <select id="epicerie-rayon">${categoriesEpicerie.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
-    <input id="epicerie-qte" placeholder="Qté" style="max-width: 60px">
-    <input id="epicerie-prix" placeholder="Prix" type="number" step="0.01" style="max-width: 70px">
-    <input id="epicerie-texte" placeholder="Ajouter un item">
-    <button type="submit">+</button>
-  </form>`
+  if (items.length === 0) {
+    html += `<div class="card"><p class="empty">${recherche ? 'Aucun résultat' : 'Liste vide'}</p></div>`
+  }
+
+  html += `<div class="form-grid">
+    <select class="input full" id="epicerie-rayon">${categoriesEpicerie.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
+    <input class="input" id="epicerie-texte" placeholder="Item" style="flex-basis:100%">
+    <input class="input" id="epicerie-qte" placeholder="Qté">
+    <input class="input" id="epicerie-prix" placeholder="Prix" type="number" step="0.01">
+    <button type="button" class="btn" id="epicerie-ajouter"><i class="ph ph-plus"></i>Ajouter</button>
+  </div></div>`
+
   container.innerHTML = html
-
-  document.getElementById('epicerie-recherche').oninput = (e) => {
+  brancherEnTete(container)
+  container.querySelector('#ouvrir-magasinage').onclick = ouvrirMagasinage
+  const rech = container.querySelector('#epicerie-recherche')
+  rech.oninput = (e) => {
     epicerieRecherche = e.target.value
     renderEpicerie()
     const input = document.getElementById('epicerie-recherche')
     input.focus()
     input.setSelectionRange(input.value.length, input.value.length)
   }
-  container.querySelectorAll('input[type=checkbox]').forEach(el => {
-    el.onchange = () => updateDoc(doc(refEpicerie, el.dataset.id), { fait: el.checked })
-  })
-  container.querySelectorAll('.remove-btn').forEach(el => {
-    el.onclick = () => deleteDoc(doc(refEpicerie, el.dataset.id))
-  })
-  container.querySelectorAll('.fav-btn').forEach(el => {
+  container.querySelectorAll('[data-ep]').forEach(el => {
     el.onclick = () => {
-      const texte = el.dataset.texte
-      const existant = favoris.find(f => f.texte.toLowerCase() === texte.toLowerCase())
-      if (existant) deleteDoc(doc(refFavoris, existant.id))
-      else addDoc(refFavoris, { texte, rayon: el.dataset.rayon })
+      const item = epicerieItems.find(i => i.id === el.dataset.ep)
+      updateDoc(doc(refEpicerie, item.id), { fait: !item.fait })
     }
   })
-  container.querySelectorAll('.chip').forEach(el => {
+  container.querySelectorAll('[data-ep-suppr]').forEach(el => {
+    el.onclick = () => deleteDoc(doc(refEpicerie, el.dataset.epSuppr))
+  })
+  container.querySelectorAll('[data-fav]').forEach(el => {
+    el.onclick = () => {
+      const existant = favoris.find(f => f.texte.toLowerCase() === el.dataset.fav.toLowerCase())
+      if (existant) deleteDoc(doc(refFavoris, existant.id))
+      else addDoc(refFavoris, { texte: el.dataset.fav, rayon: el.dataset.rayon })
+    }
+  })
+  container.querySelectorAll('[data-fav-texte]').forEach(el => {
     el.onclick = (e) => {
-      if (e.target.classList.contains('chip-x')) {
-        deleteDoc(doc(refFavoris, e.target.dataset.id))
+      if (e.target.dataset.favSuppr) {
+        deleteDoc(doc(refFavoris, e.target.dataset.favSuppr))
         return
       }
-      addDoc(refEpicerie, { texte: el.dataset.texte, rayon: el.dataset.rayon, quantite: '', prix: '', fait: false })
+      addDoc(refEpicerie, { texte: el.dataset.favTexte, rayon: el.dataset.favRayon, quantite: '', prix: '', fait: false })
     }
   })
-  container.querySelector('#epicerie-form').onsubmit = (e) => {
-    e.preventDefault()
-    const texte = document.getElementById('epicerie-texte').value.trim()
-    const rayon = document.getElementById('epicerie-rayon').value
-    const quantite = document.getElementById('epicerie-qte').value.trim()
-    const prix = document.getElementById('epicerie-prix').value.trim()
+  const ajouter = () => {
+    const texte = container.querySelector('#epicerie-texte').value.trim()
     if (!texte) return
-    addDoc(refEpicerie, { texte, rayon, quantite, prix, fait: false })
-    document.getElementById('epicerie-texte').value = ''
-    document.getElementById('epicerie-qte').value = ''
-    document.getElementById('epicerie-prix').value = ''
+    addDoc(refEpicerie, {
+      texte,
+      rayon: container.querySelector('#epicerie-rayon').value,
+      quantite: container.querySelector('#epicerie-qte').value.trim(),
+      prix: container.querySelector('#epicerie-prix').value.trim(),
+      fait: false
+    })
+    container.querySelector('#epicerie-texte').value = ''
+    container.querySelector('#epicerie-qte').value = ''
+    container.querySelector('#epicerie-prix').value = ''
   }
+  container.querySelector('#epicerie-ajouter').onclick = ajouter
+  container.querySelector('#epicerie-texte').onkeydown = (e) => { if (e.key === 'Enter') ajouter() }
 }
 
-function initEpicerie() {
-  onSnapshot(refEpicerie, snap => {
-    epicerieItems = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    renderEpicerie()
-  })
+// — mode magasinage —
+
+function ouvrirMagasinage() {
+  magasinageOuvert = true
+  renderMagasinage()
 }
 
-function initFavoris() {
-  onSnapshot(refFavoris, snap => {
-    favoris = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    renderEpicerie()
-  })
+function fermerMagasinage() {
+  magasinageOuvert = false
+  document.getElementById('magasinage').style.display = 'none'
+  document.body.style.overflow = ''
 }
 
-// repas de la semaine (déjeuner, dîner, souper)
+function renderMagasinage() {
+  const el = document.getElementById('magasinage')
+  if (!magasinageOuvert) return
+  el.style.display = 'flex'
+  document.body.style.overflow = 'hidden'
 
-let repasItems = []
-let semaineDebut = lundiDeCetteSemaine(new Date())
-let repasOuvert = null
+  const total = epicerieItems.length
+  const faits = epicerieItems.filter(i => i.fait).length
+  const panier = epicerieItems.reduce((a, i) => a + (i.fait ? (parseFloat(i.prix) || 0) : 0), 0)
+  const restant = epicerieItems.reduce((a, i) => a + (i.fait ? 0 : (parseFloat(i.prix) || 0)), 0)
 
-function lundiDeCetteSemaine(date) {
-  const d = new Date(date)
-  const jour = d.getDay()
-  const diff = jour === 0 ? -6 : 1 - jour
-  d.setDate(d.getDate() + diff)
-  d.setHours(0, 0, 0, 0)
-  return d
-}
-
-function formatDateISO(d) {
-  const annee = d.getFullYear()
-  const mois = String(d.getMonth() + 1).padStart(2, '0')
-  const jour = String(d.getDate()).padStart(2, '0')
-  return `${annee}-${mois}-${jour}`
-}
-
-function formatJourLabel(d) {
-  const noms_jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi']
-  return `${noms_jours[d.getDay()]} ${d.getDate()} ${noms_mois[d.getMonth()]}`
-}
-
-function renderRepas() {
-  const container = document.getElementById('section-repas')
-  const jours = []
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(semaineDebut)
-    d.setDate(d.getDate() + i)
-    jours.push(d)
-  }
-  const aujourdhui = formatDateISO(new Date())
-
-  let html = `<div class="semaine-nav">
-    <button id="semaine-prec" type="button">‹</button>
-    <span>${formatJourLabel(jours[0])} – ${formatJourLabel(jours[6])}</span>
-    <button id="semaine-suiv" type="button">›</button>
+  let html = `<div class="fs-head">
+    <button type="button" class="icon-btn" id="fermer-magasinage"><i class="ph ph-x"></i></button>
+    <div class="main"><div class="titre">Mode magasinage</div><div class="meta">${faits} des ${total} items dans le panier</div></div>
+    <span class="total">${argent(panier)}</span>
   </div>
-  <div class="repas-semaine">`
+  <div class="fs-progress"><span style="width:${total ? Math.round((faits / total) * 100) : 0}%"></span></div>
+  <div class="fs-body">`
 
-  jours.forEach(d => {
-    const dateStr = formatDateISO(d)
-    const jourItem = repasItems.find(r => r.id === dateStr) || {}
-    html += `<div class="jour-card${dateStr === aujourdhui ? ' aujourdhui' : ''}">
-      <div class="jour-nom">${formatJourLabel(d)}</div>`
-    moments.forEach(m => {
-      const repasMoment = jourItem[m.id]
-      const cle = dateStr + '|' + m.id
-      html += `<div class="repas-moment" data-date="${dateStr}" data-moment="${m.id}">
-        <span class="moment-label">${m.label}</span>
-        <span class="moment-texte">${repasMoment && repasMoment.texte ? escapeHtml(repasMoment.texte) : 'Ajouter'}</span>
-      </div>`
-      if (repasOuvert === cle) {
-        html += `<div class="jour-edit">
-          <input id="repas-texte" placeholder="Nom du repas" value="${escapeHtml(repasMoment ? repasMoment.texte : '')}">
-          <textarea id="repas-ingredients" placeholder="Ingrédients à ajouter à l'épicerie, un par ligne">${escapeHtml(repasMoment ? repasMoment.ingredients : '')}</textarea>
-          <div class="jour-actions">
-            <button type="button" class="jour-save" data-date="${dateStr}" data-moment="${m.id}">Enregistrer</button>
-            <button type="button" class="jour-clear" data-date="${dateStr}" data-moment="${m.id}">Effacer</button>
-          </div>
-        </div>`
-      }
+  categoriesEpicerie.forEach(cat => {
+    const liste = epicerieItems.filter(i => rayonDe(i) === cat)
+    if (liste.length === 0) return
+    html += `<div class="rayon-groupe"><div class="rayon-titre">${cat}</div>`
+    liste.forEach(item => {
+      const meta = [item.quantite ? item.quantite + ' ×' : '', item.prix ? argent(parseFloat(item.prix)) : '', item.fait ? 'dans le panier' : '']
+        .filter(Boolean).join(' · ')
+      html += `<button type="button" class="shop-row${item.fait ? ' done' : ''}" data-shop="${item.id}">
+        <span class="check round${item.fait ? ' on' : ''}" style="pointer-events:none"><i class="ph-fill ph-check"></i></span>
+        <span class="main"><span class="titre" style="display:block">${escapeHtml(item.texte)}</span><span class="meta" style="display:block">${meta}</span></span>
+      </button>`
     })
     html += '</div>'
   })
-  html += '</div>'
-  container.innerHTML = html
 
-  document.getElementById('semaine-prec').onclick = () => {
-    semaineDebut.setDate(semaineDebut.getDate() - 7)
-    repasOuvert = null
-    renderRepas()
+  if (total === 0) html += '<p class="empty">Ta liste est vide</p>'
+
+  html += `</div>
+  <div class="fs-foot">
+    <div class="main"><div class="label">Reste à acheter</div><div class="valeur">${argent(restant)}</div></div>
+    <button type="button" class="btn" id="terminer-achats">Terminer les achats</button>
+  </div>`
+
+  el.innerHTML = html
+  el.querySelector('#fermer-magasinage').onclick = fermerMagasinage
+  el.querySelectorAll('[data-shop]').forEach(b => {
+    b.onclick = () => {
+      const item = epicerieItems.find(i => i.id === b.dataset.shop)
+      updateDoc(doc(refEpicerie, item.id), { fait: !item.fait })
+    }
+  })
+  el.querySelector('#terminer-achats').onclick = () => {
+    epicerieItems.filter(i => i.fait).forEach(i => deleteDoc(doc(refEpicerie, i.id)))
+    fermerMagasinage()
   }
-  document.getElementById('semaine-suiv').onclick = () => {
-    semaineDebut.setDate(semaineDebut.getDate() + 7)
-    repasOuvert = null
-    renderRepas()
-  }
-  container.querySelectorAll('.repas-moment').forEach(el => {
-    el.onclick = () => {
-      const cle = el.dataset.date + '|' + el.dataset.moment
-      repasOuvert = repasOuvert === cle ? null : cle
-      renderRepas()
-    }
-  })
-  container.querySelectorAll('.jour-save').forEach(el => {
-    el.onclick = (e) => {
-      e.stopPropagation()
-      const dateStr = el.dataset.date
-      const moment = el.dataset.moment
-      const texte = document.getElementById('repas-texte').value.trim()
-      const ingredients = document.getElementById('repas-ingredients').value
-      setDoc(doc(refRepas, dateStr), { date: dateStr, [moment]: { texte, ingredients } }, { merge: true })
-      ingredients.split('\n').map(l => l.trim()).filter(Boolean).forEach(ligne => {
-        const dejaLa = epicerieItems.some(i => !i.fait && i.texte.toLowerCase() === ligne.toLowerCase())
-        if (!dejaLa) addDoc(refEpicerie, { texte: ligne, rayon: 'Autres', quantite: '', prix: '', fait: false })
-      })
-      repasOuvert = null
-      renderRepas()
-    }
-  })
-  container.querySelectorAll('.jour-clear').forEach(el => {
-    el.onclick = (e) => {
-      e.stopPropagation()
-      setDoc(doc(refRepas, el.dataset.date), { [el.dataset.moment]: null }, { merge: true })
-      repasOuvert = null
-      renderRepas()
-    }
-  })
 }
 
-function initRepas() {
-  onSnapshot(refRepas, snap => {
-    repasItems = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    renderRepas()
-  })
-}
-
-// dépenses (catégories, mois, règlement à N personnes, récurrentes)
-
-let depensesItems = []
-
-function moisActuelCle() {
-  return new Date().toISOString().slice(0, 7)
-}
-
-let moisSelectionne = moisActuelCle()
+// — dépenses —
 
 function categorieDe(item) {
-  return categoriesDepenses.includes(item.categorie) ? item.categorie : 'Autre'
+  return categoriesDepenses.some(c => c.cat === item.categorie) ? item.categorie : 'Autre'
 }
 
 function itemsPourMois(mois) {
@@ -608,13 +807,8 @@ function moisDisponibles() {
   return Array.from(set).sort().reverse()
 }
 
-function formatMois(cle) {
-  const [an, mois] = cle.split('-')
-  return `${noms_mois[parseInt(mois, 10) - 1]} ${an}`
-}
-
 function calculerReglement(items) {
-  const total = items.reduce((acc, i) => acc + i.montant, 0)
+  const total = items.reduce((a, i) => a + i.montant, 0)
   const parPersonne = {}
   items.forEach(i => {
     parPersonne[i.payeur] = (parPersonne[i.payeur] || 0) + i.montant
@@ -641,139 +835,261 @@ function calculerReglement(items) {
   return { total, transactions }
 }
 
+function sixDerniersMois() {
+  const out = []
+  const base = new Date()
+  base.setDate(1)
+  for (let k = 5; k >= 0; k--) {
+    const d = new Date(base)
+    d.setMonth(d.getMonth() - k)
+    const cle = formatDateISO(d).slice(0, 7)
+    out.push({ cle, label: abrev_mois[d.getMonth()], total: itemsPourMois(cle).reduce((a, i) => a + i.montant, 0) })
+  }
+  return out
+}
+
 function renderDepenses() {
   const container = document.getElementById('section-depenses')
   const items = itemsPourMois(moisSelectionne)
   const { total, transactions } = calculerReglement(items)
+  const t0 = transactions[0]
+  const historique = sixDerniersMois()
+  const max = Math.max(1, ...historique.map(h => h.total))
+  const moyenne = historique.reduce((a, h) => a + h.total, 0) / 6
 
-  let messageBalance = 'Ajoute des dépenses pour voir le solde'
-  if (items.length > 0) {
-    messageBalance = transactions.length === 0
-      ? 'Vous êtes à égalité'
-      : transactions.map(t => `${t.de} doit ${t.montant.toFixed(2)} $ à ${t.a}`).join('<br>')
-  }
+  let html = enTete('Dépenses', formatMois(moisSelectionne === 'tous' ? moisActuelCle() : moisSelectionne), boutonsEnTete)
 
-  const mois = moisDisponibles()
+  html += `<div class="body">
+    <div class="hero">
+      <div class="legend">${items.length === 0 ? 'Aucune dépense pour cette période' : (t0 ? `${escapeHtml(t0.de)} doit à ${escapeHtml(t0.a)}` : 'Vous êtes à égalité')}</div>
+      <div class="montant">${t0 ? argent(t0.montant) : argent(0)}</div>
+      <div class="progress-legend" style="margin-top:14px"><span>${argent(total)} au total ce mois-ci</span></div>
+    </div>
 
-  let html = `<div class="balance">
-    <span>${messageBalance}</span>
-    <span class="amount">${total.toFixed(2)} $ au total</span>
-  </div>
-  <select id="depenses-mois" class="mois-select">
-    <option value="tous">Tous les mois</option>
-    ${mois.map(m => `<option value="${m}"${m === moisSelectionne ? ' selected' : ''}>${formatMois(m)}</option>`).join('')}
-  </select>`
+    <select class="input" id="depenses-mois">
+      <option value="tous"${moisSelectionne === 'tous' ? ' selected' : ''}>Tous les mois</option>
+      ${moisDisponibles().map(m => `<option value="${m}"${m === moisSelectionne ? ' selected' : ''}>${formatMois(m)}</option>`).join('')}
+    </select>
 
-  categoriesDepenses.forEach(cat => {
-    const liste = items.filter(i => categorieDe(i) === cat)
-    if (liste.length === 0) return
-    html += `<div class="section-title">${cat}</div><div class="card">`
-    liste.forEach(item => {
-      html += `<div class="money-row">
-        <div style="flex: 1">
-          <div>${escapeHtml(item.desc)}</div>
-          <div class="who">payé par ${escapeHtml(item.payeur)}</div>
-        </div>
-        <span class="amount">${item.montant.toFixed(2)} $</span>
-        ${item.instance ? '' : `<button class="remove-btn" data-id="${item.id}">×</button>`}
+    <div class="section-title"><span>Six derniers mois</span><span>moy. ${argent(moyenne)}</span></div>
+    <div class="card card-pad">
+      <div class="chart">
+        ${historique.map(h => `<div class="col${h.cle === moisSelectionne ? ' on' : ''}">
+          <div class="bar" style="height:${Math.round((h.total / max) * 100)}%"></div>
+          <span>${h.label}</span>
+        </div>`).join('')}
+      </div>
+      <div class="chart-foot"><span>${formatMois(historique[5].cle)}</span><strong>${argent(historique[5].total)}</strong></div>
+    </div>
+
+    <div class="section-title"><span>Par catégorie</span></div>
+    <div class="card card-pad">`
+
+  const parCat = categoriesDepenses.map(c => ({
+    cat: c.cat,
+    total: items.filter(i => categorieDe(i) === c.cat).reduce((a, i) => a + i.montant, 0)
+  })).filter(c => c.total > 0)
+
+  if (parCat.length === 0) {
+    html += '<p class="empty">Rien à afficher</p>'
+  } else {
+    const maxCat = Math.max(...parCat.map(c => c.total))
+    parCat.forEach(c => {
+      html += `<div class="bar-cat">
+        <div class="l"><span>${c.cat}</span><span>${argent(c.total)}</span></div>
+        <div class="t"><span style="width:${Math.round((c.total / maxCat) * 100)}%"></span></div>
       </div>`
     })
-    html += '</div>'
-  })
-  if (items.length === 0) html += `<div class="card"><p class="empty">Aucune dépense pour cette période</p></div>`
+  }
 
-  html += `<form class="add-row" id="depenses-form" style="flex-wrap: wrap">
-    <input id="depenses-desc" placeholder="Description" style="flex-basis: 100%">
-    <input id="depenses-montant" placeholder="Montant" type="number" step="0.01">
-    <input id="depenses-payeur" placeholder="Payé par" value="${escapeHtml(currentName())}">
-    <select id="depenses-categorie">${categoriesDepenses.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
-    <button type="submit">+</button>
-  </form>`
-
-  const recurrentes = depensesItems.filter(i => i.recurrente)
-  html += `<div class="section-title">Dépenses récurrentes</div><div class="card">`
-  if (recurrentes.length === 0) html += `<p class="empty">Aucune dépense récurrente</p>`
-  recurrentes.forEach(r => {
-    const payeCeMois = !!(r.moisPayes && r.moisPayes[moisSelectionne])
-    html += `<div class="item-row">
-      <input type="checkbox" ${payeCeMois ? 'checked' : ''} data-id="${r.id}" class="recurrente-check"${moisSelectionne === 'tous' ? ' disabled' : ''}>
-      <span>${escapeHtml(r.desc)} — ${r.montant.toFixed(2)} $ (${escapeHtml(r.payeur)}) <span class="tag">${escapeHtml(categorieDe(r))}</span></span>
-      <button class="recurrente-remove" data-id="${r.id}">×</button>
+  html += '</div><div class="section-title"><span>Ce mois-ci</span></div><div class="card">'
+  if (items.length === 0) html += '<p class="empty">Aucune dépense pour cette période</p>'
+  items.forEach(item => {
+    html += `<div class="row">
+      <div class="pill-icon"><i class="ph ${iconeDepense(categorieDe(item))}"></i></div>
+      <div class="main"><div class="titre">${escapeHtml(item.desc)}</div><div class="meta">payé par ${escapeHtml(item.payeur)}${item.instance ? ' · récurrent' : ''}</div></div>
+      <span class="montant-cell">${argent(item.montant)}</span>
+      ${item.instance ? '' : `<button type="button" class="ghost-btn" data-dep-suppr="${item.id}"><i class="ph ph-x"></i></button>`}
     </div>`
   })
+
   html += `</div>
-  <form class="add-row" id="recurrente-form" style="flex-wrap: wrap">
-    <input id="recurrente-desc" placeholder="Description (ex: Loyer)" style="flex-basis: 100%">
-    <input id="recurrente-montant" placeholder="Montant" type="number" step="0.01">
-    <input id="recurrente-payeur" placeholder="Payé par" value="${escapeHtml(currentName())}">
-    <select id="recurrente-categorie">${categoriesDepenses.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
-    <button type="submit">+</button>
-  </form>`
+    <div class="form-grid">
+      <input class="input full" id="depenses-desc" placeholder="Description">
+      <input class="input" id="depenses-montant" placeholder="Montant" type="number" step="0.01">
+      <input class="input" id="depenses-payeur" placeholder="Payé par" value="${escapeHtml(currentName())}">
+      <select class="input" id="depenses-categorie">${categoriesDepenses.map(c => `<option value="${c.cat}">${c.cat}</option>`).join('')}</select>
+      <button type="button" class="btn" id="depenses-ajouter"><i class="ph ph-plus"></i>Ajouter</button>
+    </div>
+
+    <div class="section-title"><span>Dépenses récurrentes</span></div>
+    <div class="card">`
+
+  const recurrentes = depensesItems.filter(i => i.recurrente)
+  if (recurrentes.length === 0) html += '<p class="empty">Aucune dépense récurrente</p>'
+  recurrentes.forEach(r => {
+    const paye = !!(r.moisPayes && r.moisPayes[moisSelectionne])
+    html += `<div class="row">
+      <button type="button" class="check${paye ? ' on' : ''}" data-rec="${r.id}" ${moisSelectionne === 'tous' ? 'disabled style="opacity:.45"' : ''}><i class="ph-fill ph-check"></i></button>
+      <div class="main"><div class="titre">${escapeHtml(r.desc)}</div><div class="meta">${argent(r.montant)} · ${escapeHtml(r.payeur)}<span class="tag">${escapeHtml(categorieDe(r))}</span></div></div>
+      <button type="button" class="ghost-btn" data-rec-suppr="${r.id}"><i class="ph ph-x"></i></button>
+    </div>`
+  })
+
+  html += `</div>
+    <div class="form-grid">
+      <input class="input full" id="recurrente-desc" placeholder="Description (ex: Loyer)">
+      <input class="input" id="recurrente-montant" placeholder="Montant" type="number" step="0.01">
+      <input class="input" id="recurrente-payeur" placeholder="Payé par" value="${escapeHtml(currentName())}">
+      <select class="input" id="recurrente-categorie">${categoriesDepenses.map(c => `<option value="${c.cat}">${c.cat}</option>`).join('')}</select>
+      <button type="button" class="btn btn-quiet" id="recurrente-ajouter"><i class="ph ph-plus"></i>Ajouter</button>
+    </div>
+  </div>`
 
   container.innerHTML = html
-
-  document.getElementById('depenses-mois').value = moisSelectionne
-  document.getElementById('depenses-mois').onchange = (e) => {
+  brancherEnTete(container)
+  container.querySelector('#depenses-mois').onchange = (e) => {
     moisSelectionne = e.target.value
     renderDepenses()
   }
-  container.querySelectorAll('.money-row .remove-btn').forEach(el => {
-    el.onclick = () => deleteDoc(doc(refDepenses, el.dataset.id))
+  container.querySelectorAll('[data-dep-suppr]').forEach(el => {
+    el.onclick = () => deleteDoc(doc(refDepenses, el.dataset.depSuppr))
   })
-  container.querySelector('#depenses-form').onsubmit = (e) => {
-    e.preventDefault()
-    const desc = document.getElementById('depenses-desc').value.trim()
-    const montant = parseFloat(document.getElementById('depenses-montant').value)
-    const payeur = document.getElementById('depenses-payeur').value.trim()
-    const categorie = document.getElementById('depenses-categorie').value
+  container.querySelector('#depenses-ajouter').onclick = () => {
+    const desc = container.querySelector('#depenses-desc').value.trim()
+    const montant = parseFloat(container.querySelector('#depenses-montant').value)
+    const payeur = container.querySelector('#depenses-payeur').value.trim()
     if (!desc || !montant || !payeur) return
-    addDoc(refDepenses, { desc, montant, payeur, categorie, date: new Date().toISOString().slice(0, 10), recurrente: false })
-    document.getElementById('depenses-desc').value = ''
-    document.getElementById('depenses-montant').value = ''
+    addDoc(refDepenses, {
+      desc, montant, payeur,
+      categorie: container.querySelector('#depenses-categorie').value,
+      date: formatDateISO(new Date()),
+      recurrente: false
+    })
   }
-  container.querySelectorAll('.recurrente-check').forEach(el => {
-    el.onchange = () => {
-      const r = recurrentes.find(x => x.id === el.dataset.id)
+  container.querySelectorAll('[data-rec]').forEach(el => {
+    el.onclick = () => {
+      const r = recurrentes.find(x => x.id === el.dataset.rec)
       const moisPayes = Object.assign({}, r.moisPayes || {})
-      moisPayes[moisSelectionne] = el.checked
-      updateDoc(doc(refDepenses, el.dataset.id), { moisPayes })
+      moisPayes[moisSelectionne] = !moisPayes[moisSelectionne]
+      updateDoc(doc(refDepenses, r.id), { moisPayes })
     }
   })
-  container.querySelectorAll('.recurrente-remove').forEach(el => {
-    el.onclick = () => deleteDoc(doc(refDepenses, el.dataset.id))
+  container.querySelectorAll('[data-rec-suppr]').forEach(el => {
+    el.onclick = () => deleteDoc(doc(refDepenses, el.dataset.recSuppr))
   })
-  container.querySelector('#recurrente-form').onsubmit = (e) => {
-    e.preventDefault()
-    const desc = document.getElementById('recurrente-desc').value.trim()
-    const montant = parseFloat(document.getElementById('recurrente-montant').value)
-    const payeur = document.getElementById('recurrente-payeur').value.trim()
-    const categorie = document.getElementById('recurrente-categorie').value
+  container.querySelector('#recurrente-ajouter').onclick = () => {
+    const desc = container.querySelector('#recurrente-desc').value.trim()
+    const montant = parseFloat(container.querySelector('#recurrente-montant').value)
+    const payeur = container.querySelector('#recurrente-payeur').value.trim()
     if (!desc || !montant || !payeur) return
-    addDoc(refDepenses, { desc, montant, payeur, categorie, recurrente: true, moisPayes: {} })
-    document.getElementById('recurrente-desc').value = ''
-    document.getElementById('recurrente-montant').value = ''
+    addDoc(refDepenses, {
+      desc, montant, payeur,
+      categorie: container.querySelector('#recurrente-categorie').value,
+      recurrente: true,
+      moisPayes: {}
+    })
   }
 }
 
-function initDepenses() {
-  onSnapshot(refDepenses, snap => {
-    depensesItems = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-    renderDepenses()
+// — rappels —
+
+function ouvrirRappels() {
+  const el = document.getElementById('rappels-overlay')
+  el.style.display = 'flex'
+  const actifs = rappels.filter(r => r.actif).length
+
+  el.innerHTML = `<div class="sheet-bas">
+    <div class="sheet-head">
+      <div><div class="titre">Rappels</div><div class="meta">${actifs} actifs</div></div>
+      <button type="button" class="icon-btn" id="fermer-rappels"><i class="ph ph-x"></i></button>
+    </div>
+    <div class="card">
+      ${rappels.length === 0 ? '<p class="empty">Aucun rappel</p>' : rappels.map(r => `
+        <div class="row">
+          <div class="pill-icon" style="background:transparent;color:var(--accent-light)"><i class="ph ${r.icon || 'ph-bell'}"></i></div>
+          <div class="main"><div class="titre" style="font-size:14.5px">${escapeHtml(r.nom)}</div><div class="meta">${escapeHtml(r.quand)}</div></div>
+          <button type="button" class="switch${r.actif ? ' on' : ''}" data-rap="${r.id}"><span></span></button>
+          <button type="button" class="ghost-btn" data-rap-suppr="${r.id}"><i class="ph ph-x"></i></button>
+        </div>`).join('')}
+    </div>
+    <div class="form-grid" style="margin-top:12px">
+      <input class="input full" id="rappel-nom" placeholder="Nouveau rappel (ex: Poubelles)">
+      <input class="input" id="rappel-quand" placeholder="Quand (ex: mardi, 19 h)">
+      <button type="button" class="btn" id="rappel-ajouter"><i class="ph ph-plus"></i>Ajouter</button>
+    </div>
+    <p class="meta" style="margin-top:12px;color:var(--ink-faint)">Les rappels s'affichent dans l'app. Pour recevoir de vraies notifications sur ton iPhone, ajoute l'app à l'écran d'accueil.</p>
+  </div>`
+
+  el.onclick = (e) => { if (e.target.id === 'rappels-overlay') el.style.display = 'none' }
+  el.querySelector('#fermer-rappels').onclick = () => { el.style.display = 'none' }
+  el.querySelectorAll('[data-rap]').forEach(b => {
+    b.onclick = () => {
+      const r = rappels.find(x => x.id === b.dataset.rap)
+      updateDoc(doc(refRappels, r.id), { actif: !r.actif })
+    }
   })
+  el.querySelectorAll('[data-rap-suppr]').forEach(b => {
+    b.onclick = () => deleteDoc(doc(refRappels, b.dataset.rapSuppr))
+  })
+  el.querySelector('#rappel-ajouter').onclick = () => {
+    const nom = el.querySelector('#rappel-nom').value.trim()
+    const quand = el.querySelector('#rappel-quand').value.trim()
+    if (!nom) return
+    addDoc(refRappels, { nom, quand: quand || 'sans horaire', icon: 'ph-bell', actif: true })
+    el.querySelector('#rappel-nom').value = ''
+    el.querySelector('#rappel-quand').value = ''
+  }
 }
+
+// — rendu global —
+
+function rendre() {
+  if (!pret) return
+  renderAccueil()
+  renderChecklist()
+  renderRepas()
+  renderEpicerie()
+  renderDepenses()
+  majBadge()
+  if (magasinageOuvert) renderMagasinage()
+  if (document.getElementById('rappels-overlay').style.display === 'flex') ouvrirRappels()
+  goTo(ongletActuel)
+}
+
+// — démarrage —
 
 signInAnonymously(auth).then(() => {
   document.getElementById('loading').style.display = 'none'
-  document.getElementById('nav-wrap').style.display = ''
+  document.getElementById('tabbar').style.display = ''
+  pret = true
   setupNav()
-  initChecklist()
-  initTaches()
-  initRepas()
-  initFavoris()
-  initEpicerie()
-  initDepenses()
 
-  document.getElementById('nom-btn').textContent = currentName() || 'Profil'
+  getDocs(refChecklist).then(snap => {
+    if (snap.empty) items_depart.forEach(([cat, txt]) => addDoc(refChecklist, { texte: txt, categorie: cat, fait: false }))
+  })
+  getDocs(refRappels).then(snap => {
+    if (snap.empty) rappels_depart.forEach(r => addDoc(refRappels, r))
+  })
+
+  const suivre = (ref, setter) => onSnapshot(ref, snap => {
+    setter(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    rendre()
+  })
+
+  suivre(refChecklist, v => { checklistItems = v })
+  suivre(refTaches, v => { tachesItems = v })
+  suivre(refEpicerie, v => { epicerieItems = v })
+  suivre(refFavoris, v => { favoris = v })
+  suivre(refDepenses, v => { depensesItems = v })
+  suivre(refRepas, v => { repasItems = v })
+  suivre(refRecettes, v => { recettes = v })
+  suivre(refRappels, v => { rappels = v })
+  onSnapshot(refConfig, snap => {
+    dateCible = snap.exists() ? (snap.data().dateCible || '') : ''
+    rendre()
+  })
+
   if (!currentName()) ouvrirProfil()
 })
 
