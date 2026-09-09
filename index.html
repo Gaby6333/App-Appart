@@ -16,12 +16,19 @@
   <body>
     <div class="app">
       <div class="header">
-        <h1 id="titre">App Appart</h1>
+        <div class="header-top">
+          <h1 id="titre">App Appart</h1>
+          <div class="header-actions">
+            <button id="theme-toggle" class="icon-btn" type="button">🌙</button>
+            <button id="nom-btn" class="icon-btn" type="button">Profil</button>
+          </div>
+        </div>
       </div>
       <div class="content">
         <p class="empty" id="loading">Connexion...</p>
         <section id="section-checklist" class="section"></section>
         <section id="section-taches" class="section"></section>
+        <section id="section-repas" class="section"></section>
         <section id="section-epicerie" class="section"></section>
         <section id="section-depenses" class="section"></section>
       </div>
@@ -29,6 +36,17 @@
         <div class="nav-inner" id="nav"></div>
       </div>
     </div>
+
+    <div class="overlay" id="profil-overlay" style="display: none">
+      <div class="card profil-card">
+        <h2>Comment tu t'appelles?</h2>
+        <form id="profil-form">
+          <input id="profil-nom" placeholder="Ton nom" autocomplete="off" />
+          <button type="submit">OK</button>
+        </form>
+      </div>
+    </div>
+
     <script type="module" src="app.js"></script>
   </body>
 </html>

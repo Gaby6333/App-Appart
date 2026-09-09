@@ -10,6 +10,30 @@
   --radius: 14px;
 }
 
+:root[data-theme='dark'] {
+  --bg: #1f1d19;
+  --surface: #29271f;
+  --ink: #eee7d8;
+  --ink-soft: #a89f8c;
+  --moss: #7c9a6c;
+  --slate: #6f8ba3;
+  --clay: #c17a52;
+  --line: #3a362c;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #1f1d19;
+    --surface: #29271f;
+    --ink: #eee7d8;
+    --ink-soft: #a89f8c;
+    --moss: #7c9a6c;
+    --slate: #6f8ba3;
+    --clay: #c17a52;
+    --line: #3a362c;
+  }
+}
+
 * {
   box-sizing: border-box;
 }
@@ -47,6 +71,29 @@ button {
 
 .header h1 {
   font-size: 26px;
+}
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.header-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: var(--ink);
 }
 
 .header p {
@@ -236,4 +283,191 @@ button {
 
 .section.active {
   display: block;
+}
+
+.tag {
+  display: inline-block;
+  font-size: 11px;
+  color: var(--ink-soft);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 6px;
+  margin-left: 6px;
+}
+
+.tag-assigne {
+  color: var(--moss);
+  border-color: var(--moss);
+}
+
+.mois-select {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink);
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.countdown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.countdown input[type='date'] {
+  border: none;
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.profil-card {
+  max-width: 320px;
+  width: 100%;
+  padding: 20px;
+}
+
+.profil-card h2 {
+  font-size: 18px;
+  margin-bottom: 14px;
+}
+
+.profil-card form {
+  display: flex;
+  gap: 8px;
+}
+
+.profil-card input {
+  flex: 1;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.profil-card button {
+  background: var(--moss);
+  color: white;
+  border: none;
+  border-radius: 10px;
+  padding: 0 16px;
+  cursor: pointer;
+}
+
+.semaine-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.semaine-nav button {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  font-size: 16px;
+  cursor: pointer;
+  color: var(--ink);
+}
+
+.repas-semaine {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.jour-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+
+.jour-card.aujourdhui {
+  border-color: var(--moss);
+}
+
+.jour-header {
+  cursor: pointer;
+}
+
+.jour-nom {
+  font-size: 12px;
+  color: var(--ink-soft);
+  text-transform: capitalize;
+}
+
+.jour-repas {
+  font-size: 15px;
+  margin-top: 2px;
+}
+
+.jour-edit {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.jour-edit input, .jour-edit textarea {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.jour-edit textarea {
+  resize: vertical;
+  min-height: 70px;
+}
+
+.jour-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.jour-actions button {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.jour-save {
+  background: var(--moss);
+  color: white;
+}
+
+.jour-clear {
+  background: none;
+  color: var(--ink-soft);
+  border: 1px solid var(--line);
 }
