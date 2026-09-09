@@ -3,9 +3,6 @@ import {
   getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDocs, setDoc
 } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js'
 import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js'
-import {
-  getStorage, ref as storageRef, uploadBytes, getDownloadURL
-} from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js'
 
 const firebaseConfig = {
   apiKey: 'AIzaSyBxLzMq3gzVWMtv_7vQYNNnPDy3WEI8_YI',
@@ -19,7 +16,6 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig)
 const db = getFirestore(app)
 const auth = getAuth(app)
-const storage = getStorage(app)
 
 const refChecklist = collection(db, 'checklist')
 const refTaches = collection(db, 'taches')
@@ -166,12 +162,11 @@ function setupNav() {
   goTo('checklist')
 }
 
-// checklist (avec compte à rebours, lien, note et photo par item)
+// checklist (avec compte à rebours, lien et note par item)
 
 let checklistItems = []
 let dateCible = ''
 let checklistOuvert = null
-let fichierEnAttente = null
 
 function renderCompteARebours() {
   let texte = 'Ajoute une date pour voir le compte à rebours'
@@ -187,12 +182,6 @@ function renderCompteARebours() {
   </div>`
 }
 
-function uploaderPhotoChecklist(id, file) {
-  const chemin = `checklist/${id}/${Date.now()}-${file.name}`
-  const fichierRef = storageRef(storage, chemin)
-  return uploadBytes(fichierRef, file).then(() => getDownloadURL(fichierRef))
-}
-
 function renderChecklist() {
   const container = document.getElementById('section-checklist')
   let html = renderCompteARebours()
@@ -202,7 +191,7 @@ function renderChecklist() {
     html += `<div class="section-title">${cat}</div><div class="card">`
     liste.forEach(item => {
       const achete = item.achetePar ? ` <span class="tag">par ${escapeHtml(item.achetePar)}</span>` : ''
-      const badges = [item.lien ? '🔗' : '', item.note ? '📝' : '', item.imageUrl ? '🖼' : ''].filter(Boolean).join(' ')
+      const badges = [item.lien ? '🔗' : '', item.note ? '📝' : ''].filter(Boolean).join(' ')
       html += `<div class="item-row${item.fait ? ' done' : ''}">
         <input type="checkbox" ${item.fait ? 'checked' : ''} data-id="${item.id}">
         <span>${escapeHtml(item.texte)}${achete}${badges ? ' ' + badges : ''}</span>
@@ -211,8 +200,6 @@ function renderChecklist() {
       </div>`
       if (checklistOuvert === item.id) {
         html += `<div class="jour-edit">
-          ${item.imageUrl ? `<img class="item-image" src="${item.imageUrl}" alt="">` : ''}
-          <input type="file" accept="image/*" class="item-photo" data-id="${item.id}">
           <input type="url" class="item-lien" placeholder="Lien (ex: page du produit)" value="${escapeHtml(item.lien)}">
           <textarea class="item-note" placeholder="Note">${escapeHtml(item.note)}</textarea>
           <div class="jour-actions">
@@ -244,14 +231,8 @@ function renderChecklist() {
   })
   container.querySelectorAll('.detail-btn').forEach(el => {
     el.onclick = () => {
-      fichierEnAttente = null
       checklistOuvert = checklistOuvert === el.dataset.id ? null : el.dataset.id
       renderChecklist()
-    }
-  })
-  container.querySelectorAll('.item-photo').forEach(el => {
-    el.onchange = (e) => {
-      fichierEnAttente = e.target.files[0] || null
     }
   })
   container.querySelectorAll('.item-save-details').forEach(el => {
@@ -260,15 +241,7 @@ function renderChecklist() {
       const panneau = el.closest('.jour-edit')
       const lien = panneau.querySelector('.item-lien').value.trim()
       const note = panneau.querySelector('.item-note').value.trim()
-      if (fichierEnAttente) {
-        const file = fichierEnAttente
-        fichierEnAttente = null
-        uploaderPhotoChecklist(id, file).then(url => {
-          updateDoc(doc(refChecklist, id), { lien, note, imageUrl: url })
-        })
-      } else {
-        updateDoc(doc(refChecklist, id), { lien, note })
-      }
+      updateDoc(doc(refChecklist, id), { lien, note })
       checklistOuvert = null
       renderChecklist()
     }
