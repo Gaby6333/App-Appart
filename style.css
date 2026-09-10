@@ -1,17 +1,17 @@
 :root {
-  --bg: #161826;
-  --surface: #232532;
-  --surface-2: #292b31;
-  --ink: #e9e9ed;
-  --ink-soft: #9397ab;
-  --ink-faint: #75798c;
-  --line: #3f424d;
-  --line-soft: rgba(233, 233, 237, 0.09);
-  --accent: #9184d9;
-  --accent-light: #b5abfc;
-  --accent-pale: #d2cefd;
-  --accent-tint: rgba(145, 132, 217, 0.14);
-  --accent-edge: #423a6a;
+  --bg: #23263a;
+  --surface: #30334a;
+  --surface-2: #3a3e58;
+  --ink: #eeeef2;
+  --ink-soft: #a3a7bd;
+  --ink-faint: #82869e;
+  --line: #4c5069;
+  --line-soft: rgba(238, 238, 242, 0.12);
+  --accent: #9c8fe6;
+  --accent-light: #bcb2fc;
+  --accent-pale: #dcd8fe;
+  --accent-tint: rgba(156, 143, 230, 0.16);
+  --accent-edge: #5b5188;
   --radius: 14px;
   --radius-md: 8px;
 }
@@ -183,7 +183,7 @@ a {
 .hero {
   border-radius: var(--radius);
   padding: 18px;
-  background: linear-gradient(150deg, #2b2741, #1c1d2e 78%);
+  background: linear-gradient(150deg, #3d3760, #262a3f 78%);
   box-shadow: 0 0 0 1px var(--accent-edge);
   position: relative;
   overflow: hidden;
@@ -196,7 +196,7 @@ a {
   width: 150px;
   height: 150px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(145, 132, 217, 0.34), transparent 70%);
+  background: radial-gradient(circle, rgba(156, 143, 230, 0.34), transparent 70%);
 }
 
 .hero-top {
@@ -305,7 +305,7 @@ a {
   width: 22px;
   height: 22px;
   border-radius: 6px;
-  border: 1.5px solid #595d6c;
+  border: 1.5px solid #6b6f85;
   background: transparent;
   color: transparent;
   flex-shrink: 0;
@@ -342,7 +342,7 @@ a {
   background: none;
   border: none;
   cursor: pointer;
-  color: #595d6c;
+  color: #6b6f85;
   font-size: 17px;
   padding: 4px;
 }
@@ -362,12 +362,6 @@ a {
   justify-content: center;
   font-size: 17px;
   flex-shrink: 0;
-}
-
-.montant-cell {
-  font-weight: 500;
-  font-size: 15px;
-  white-space: nowrap;
 }
 
 /* — boutons — */
@@ -549,7 +543,7 @@ textarea.input {
 
 .tag-accent {
   color: var(--accent-light);
-  border-color: #5d5294;
+  border-color: var(--accent-edge);
 }
 
 /* — barre d'onglets — */
@@ -559,7 +553,7 @@ textarea.input {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(35, 37, 50, 0.94);
+  background: rgba(35, 38, 58, 0.94);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(233, 233, 237, 0.12);
@@ -853,34 +847,6 @@ textarea.input {
   gap: 8px;
 }
 
-/* — segments (sous-onglets) — */
-
-.segment {
-  display: flex;
-  gap: 6px;
-  margin-bottom: 4px;
-}
-
-.segment-btn {
-  flex: 1;
-  text-align: center;
-  padding: 9px 0;
-  border-radius: 10px;
-  border: none;
-  background: var(--surface);
-  box-shadow: 0 0 0 1px var(--line);
-  color: var(--ink-soft);
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.segment-btn.on {
-  background: var(--accent-tint);
-  box-shadow: 0 0 0 1px var(--accent);
-  color: var(--accent-pale);
-}
-
 .repartition {
   display: flex;
   flex-direction: column;
@@ -899,92 +865,6 @@ textarea.input {
   font-weight: 500;
   color: var(--ink);
   font-size: 16px;
-}
-
-/* — graphique — */
-
-.chart {
-  display: flex;
-  align-items: flex-end;
-  gap: 10px;
-  height: 118px;
-}
-
-.chart .col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 6px;
-}
-
-.chart .bar {
-  width: 100%;
-  border-radius: 4px;
-  background: var(--line);
-  min-height: 3px;
-}
-
-.chart .col.on .bar {
-  background: var(--accent);
-}
-
-.chart .col span {
-  font-size: 10.5px;
-  color: var(--ink-faint);
-}
-
-.chart .col.on span {
-  color: var(--accent-light);
-  font-weight: 500;
-}
-
-.chart-foot {
-  margin-top: 12px;
-  padding-top: 12px;
-  border-top: 1px solid var(--line-soft);
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: var(--ink-soft);
-}
-
-.chart-foot strong {
-  color: var(--ink);
-  font-weight: 400;
-}
-
-.bar-cat {
-  margin-bottom: 14px;
-}
-
-.bar-cat:last-child {
-  margin-bottom: 0;
-}
-
-.bar-cat .l {
-  display: flex;
-  justify-content: space-between;
-  font-size: 13.5px;
-  margin-bottom: 6px;
-}
-
-.bar-cat .l span:last-child {
-  color: #cfd3e5;
-}
-
-.bar-cat .t {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--surface-2);
-  overflow: hidden;
-}
-
-.bar-cat .t span {
-  display: block;
-  height: 100%;
-  background: var(--accent);
 }
 
 /* — overlays — */
