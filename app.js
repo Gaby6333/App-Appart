@@ -1,8 +1,25 @@
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js'
 import {
-  getFirestore, collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc, getDocs, setDoc
+  getFirestore, collection, onSnapshot, doc, getDocs,
+  addDoc as _addDoc, updateDoc as _updateDoc, deleteDoc as _deleteDoc, setDoc as _setDoc
 } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js'
 import { getAuth, signInAnonymously } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js'
+
+function erreurEcriture() {
+  alert("Erreur : impossible de sauvegarder. Vérifie ta connexion.")
+}
+function ajouterDoc(ref, data) {
+  return _addDoc(ref, data).catch(erreurEcriture)
+}
+function modifierDoc(ref, data) {
+  return _updateDoc(ref, data).catch(erreurEcriture)
+}
+function supprimerDoc(ref) {
+  return _deleteDoc(ref).catch(erreurEcriture)
+}
+function enregistrerDoc(ref, data, options) {
+  return _setDoc(ref, data, options).catch(erreurEcriture)
+}
 
 const firebaseConfig = {
   apiKey: 'AIzaSyBxLzMq3gzVWMtv_7vQYNNnPDy3WEI8_YI',
@@ -223,8 +240,8 @@ function enTete(titre, sous, actions) {
 
 function boutonsEnTete() {
   return `
-  <button type="button" class="icon-btn" data-action="rappels"><i class="ph ph-bell"></i></button>
-  <button type="button" class="icon-btn" data-action="profil">${escapeHtml(currentName().charAt(0) || '?')}</button>`
+  <button type="button" class="icon-btn" data-action="rappels" aria-label="Rappels"><i class="ph ph-bell"></i></button>
+  <button type="button" class="icon-btn" data-action="profil" aria-label="Changer de profil">${escapeHtml(currentName().charAt(0) || '?')}</button>`
 }
 
 function brancherEnTete(container) {
@@ -293,7 +310,7 @@ function renderAccueil() {
     const meta = [recurrente ? frequences[t.recurrence] : null, t.dernierFaitPar ? 'dernier : ' + escapeHtml(t.dernierFaitPar) : null]
       .filter(Boolean).join(' · ')
     html += `<div class="row">
-      <button type="button" class="check" data-tache="${t.id}"><i class="ph-fill ph-check"></i></button>
+      <button type="button" class="check" data-tache="${t.id}" aria-label="${escapeHtml(t.texte)} : marquer fait"><i class="ph-fill ph-check"></i></button>
       <div class="main"><div class="titre">${escapeHtml(t.texte)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}</div>
       <i class="ph ph-broom"></i>
     </div>`
@@ -323,7 +340,7 @@ function renderAccueil() {
 
   container.innerHTML = html
   brancherEnTete(container)
-  container.querySelector('#date-cible').onchange = (e) => setDoc(refConfig, { dateCible: e.target.value }, { merge: true })
+  container.querySelector('#date-cible').onchange = (e) => enregistrerDoc(refConfig, { dateCible: e.target.value }, { merge: true })
   container.querySelectorAll('[data-tache]').forEach(el => {
     el.onclick = () => cocherTache(el.dataset.tache)
   })
@@ -358,13 +375,13 @@ function renderChecklist() {
     liste.forEach(item => {
       const badges = [item.lien ? 'lien' : '', item.note ? 'note' : ''].filter(Boolean).join(' · ')
       html += `<div class="row${item.fait ? ' done' : ''}" style="padding:10px 0;min-height:48px">
-        <button type="button" class="check${item.fait ? ' on' : ''}" data-item="${item.id}"><i class="ph-fill ph-check"></i></button>
+        <button type="button" class="check${item.fait ? ' on' : ''}" data-item="${item.id}" aria-label="${escapeHtml(item.texte)} : ${item.fait ? 'marquer non fait' : 'marquer fait'}"><i class="ph-fill ph-check"></i></button>
         <div class="main">
           <div class="titre" style="font-size:14.5px">${escapeHtml(item.texte)}</div>
           ${item.achetePar || badges ? `<div class="meta">${[item.achetePar ? 'acheté par ' + escapeHtml(item.achetePar) : '', badges].filter(Boolean).join(' · ')}</div>` : ''}
         </div>
-        <button type="button" class="ghost-btn" data-detail="${item.id}"><i class="ph ph-${checklistOuvert === item.id ? 'caret-up' : 'caret-down'}"></i></button>
-        <button type="button" class="ghost-btn" data-suppr="${item.id}"><i class="ph ph-x"></i></button>
+        <button type="button" class="ghost-btn" data-detail="${item.id}" aria-label="${checklistOuvert === item.id ? 'Fermer les détails' : 'Voir les détails'}"><i class="ph ph-${checklistOuvert === item.id ? 'caret-up' : 'caret-down'}"></i></button>
+        <button type="button" class="ghost-btn" data-suppr="${item.id}" aria-label="Supprimer ${escapeHtml(item.texte)}"><i class="ph ph-x"></i></button>
       </div>`
       if (checklistOuvert === item.id) {
         html += `<div class="edit-panel">
@@ -391,11 +408,13 @@ function renderChecklist() {
   container.querySelectorAll('[data-item]').forEach(el => {
     el.onclick = () => {
       const item = checklistItems.find(i => i.id === el.dataset.item)
-      updateDoc(doc(refChecklist, item.id), { fait: !item.fait, achetePar: !item.fait ? currentName() : null })
+      modifierDoc(doc(refChecklist, item.id), { fait: !item.fait, achetePar: !item.fait ? currentName() : null })
     }
   })
   container.querySelectorAll('[data-suppr]').forEach(el => {
-    el.onclick = () => deleteDoc(doc(refChecklist, el.dataset.suppr))
+    el.onclick = () => {
+      if (confirm('Supprimer cet item de la checklist ?')) supprimerDoc(doc(refChecklist, el.dataset.suppr))
+    }
   })
   container.querySelectorAll('[data-detail]').forEach(el => {
     el.onclick = () => {
@@ -406,7 +425,7 @@ function renderChecklist() {
   container.querySelectorAll('[data-save]').forEach(el => {
     el.onclick = () => {
       const panneau = el.closest('.edit-panel')
-      updateDoc(doc(refChecklist, el.dataset.save), {
+      modifierDoc(doc(refChecklist, el.dataset.save), {
         lien: panneau.querySelector('.item-lien').value.trim(),
         note: panneau.querySelector('.item-note').value.trim()
       })
@@ -417,7 +436,7 @@ function renderChecklist() {
   const ajouter = () => {
     const texte = container.querySelector('#checklist-texte').value.trim()
     if (!texte) return
-    addDoc(refChecklist, { texte, categorie: container.querySelector('#checklist-categorie').value, fait: false })
+    ajouterDoc(refChecklist, { texte, categorie: container.querySelector('#checklist-categorie').value, fait: false })
     container.querySelector('#checklist-texte').value = ''
   }
   container.querySelector('#checklist-ajouter').onclick = ajouter
@@ -430,9 +449,9 @@ function cocherTache(id) {
   const item = tachesItems.find(i => i.id === id)
   if (!item) return
   if (item.recurrence && item.recurrence !== 'aucune') {
-    updateDoc(doc(refTaches, id), { fait: false, dernierFaitPar: currentName(), dernierFait: formatDateISO(new Date()) })
+    modifierDoc(doc(refTaches, id), { fait: false, dernierFaitPar: currentName(), dernierFait: formatDateISO(new Date()) })
   } else {
-    updateDoc(doc(refTaches, id), { fait: !item.fait, faitPar: !item.fait ? currentName() : null })
+    modifierDoc(doc(refTaches, id), { fait: !item.fait, faitPar: !item.fait ? currentName() : null })
   }
 }
 
@@ -449,7 +468,7 @@ function lundiDeCetteSemaine(date) {
 function envoyerAEpicerie(lignes) {
   lignes.map(l => l.trim()).filter(Boolean).forEach(ligne => {
     const dejaLa = epicerieItems.some(i => !i.fait && i.texte.toLowerCase() === ligne.toLowerCase())
-    if (!dejaLa) addDoc(refEpicerie, { texte: ligne, rayon: 'Autres', quantite: '', prix: '', fait: false })
+    if (!dejaLa) ajouterDoc(refEpicerie, { texte: ligne, rayon: 'Autres', quantite: '', prix: '', fait: false })
   })
 }
 
@@ -466,8 +485,8 @@ function renderRepas() {
   const jourItem = repasItems.find(r => r.id === jourSel) || {}
 
   let html = enTete('Repas', `${jours[0].getDate()} au ${jours[6].getDate()} ${noms_mois[jours[6].getMonth()]}`, `
-    <button type="button" class="icon-btn" id="semaine-prec"><i class="ph ph-caret-left"></i></button>
-    <button type="button" class="icon-btn" id="semaine-suiv"><i class="ph ph-caret-right"></i></button>`)
+    <button type="button" class="icon-btn" id="semaine-prec" aria-label="Semaine précédente"><i class="ph ph-caret-left"></i></button>
+    <button type="button" class="icon-btn" id="semaine-suiv" aria-label="Semaine suivante"><i class="ph ph-caret-right"></i></button>`)
 
   html += '<div class="body"><div class="semaine">'
   jours.forEach(d => {
@@ -562,7 +581,7 @@ function renderRepas() {
       const [dateStr, moment] = el.dataset.saveRepas.split('|')
       const texte = container.querySelector('#repas-texte').value.trim()
       const ingredients = container.querySelector('#repas-ingredients').value
-      setDoc(doc(refRepas, dateStr), { date: dateStr, [moment]: { texte, ingredients } }, { merge: true })
+      enregistrerDoc(doc(refRepas, dateStr), { date: dateStr, [moment]: { texte, ingredients } }, { merge: true })
       envoyerAEpicerie(ingredients.split('\n'))
       repasOuvert = null
       renderRepas()
@@ -573,13 +592,13 @@ function renderRepas() {
       const texte = container.querySelector('#repas-texte').value.trim()
       const ingredients = container.querySelector('#repas-ingredients').value
       if (!texte) return
-      addDoc(refRecettes, { texte, ingredients })
+      ajouterDoc(refRecettes, { texte, ingredients })
     }
   })
   container.querySelectorAll('[data-clear-repas]').forEach(el => {
     el.onclick = () => {
       const [dateStr, moment] = el.dataset.clearRepas.split('|')
-      setDoc(doc(refRepas, dateStr), { [moment]: null }, { merge: true })
+      enregistrerDoc(doc(refRepas, dateStr), { [moment]: null }, { merge: true })
       repasOuvert = null
       renderRepas()
     }
@@ -587,13 +606,13 @@ function renderRepas() {
   container.querySelectorAll('[data-recette]').forEach(el => {
     el.onclick = (e) => {
       if (e.target.dataset.supprRecette) {
-        deleteDoc(doc(refRecettes, e.target.dataset.supprRecette))
+        if (confirm('Supprimer cette recette ?')) supprimerDoc(doc(refRecettes, e.target.dataset.supprRecette))
         return
       }
       const r = recettes.find(x => x.id === el.dataset.recette)
       const cible = repasOuvert || (formatDateISO(new Date()) + '|souper')
       const [dateStr, moment] = cible.split('|')
-      setDoc(doc(refRepas, dateStr), { date: dateStr, [moment]: { texte: r.texte, ingredients: r.ingredients || '' } }, { merge: true })
+      enregistrerDoc(doc(refRepas, dateStr), { date: dateStr, [moment]: { texte: r.texte, ingredients: r.ingredients || '' } }, { merge: true })
       envoyerAEpicerie((r.ingredients || '').split('\n'))
       repasOuvert = null
     }
@@ -637,10 +656,10 @@ function renderEpicerie() {
       const meta = [item.quantite ? item.quantite + ' ×' : '', item.prix ? argent(parseFloat(item.prix)) : '', item.fait ? 'dans le panier' : '']
         .filter(Boolean).join(' · ')
       html += `<div class="row${item.fait ? ' done' : ''}">
-        <button type="button" class="check round${item.fait ? ' on' : ''}" data-ep="${item.id}"><i class="ph-fill ph-check"></i></button>
+        <button type="button" class="check round${item.fait ? ' on' : ''}" data-ep="${item.id}" aria-label="${escapeHtml(item.texte)} : ${item.fait ? 'retirer du panier' : 'ajouter au panier'}"><i class="ph-fill ph-check"></i></button>
         <div class="main"><div class="titre">${escapeHtml(item.texte)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}</div>
-        <button type="button" class="ghost-btn fav${estFavori(item.texte) ? ' on' : ''}" data-fav="${escapeHtml(item.texte)}" data-rayon="${escapeHtml(rayonDe(item))}"><i class="ph${estFavori(item.texte) ? '-fill' : ''} ph-star"></i></button>
-        <button type="button" class="ghost-btn" data-ep-suppr="${item.id}"><i class="ph ph-x"></i></button>
+        <button type="button" class="ghost-btn fav${estFavori(item.texte) ? ' on' : ''}" data-fav="${escapeHtml(item.texte)}" data-rayon="${escapeHtml(rayonDe(item))}" aria-label="${estFavori(item.texte) ? 'Retirer des favoris' : 'Ajouter aux favoris'}"><i class="ph${estFavori(item.texte) ? '-fill' : ''} ph-star"></i></button>
+        <button type="button" class="ghost-btn" data-ep-suppr="${item.id}" aria-label="Supprimer ${escapeHtml(item.texte)}"><i class="ph ph-x"></i></button>
       </div>`
     })
     html += '</div></div>'
@@ -672,32 +691,34 @@ function renderEpicerie() {
   container.querySelectorAll('[data-ep]').forEach(el => {
     el.onclick = () => {
       const item = epicerieItems.find(i => i.id === el.dataset.ep)
-      updateDoc(doc(refEpicerie, item.id), { fait: !item.fait })
+      modifierDoc(doc(refEpicerie, item.id), { fait: !item.fait })
     }
   })
   container.querySelectorAll('[data-ep-suppr]').forEach(el => {
-    el.onclick = () => deleteDoc(doc(refEpicerie, el.dataset.epSuppr))
+    el.onclick = () => {
+      if (confirm('Supprimer cet item de la liste ?')) supprimerDoc(doc(refEpicerie, el.dataset.epSuppr))
+    }
   })
   container.querySelectorAll('[data-fav]').forEach(el => {
     el.onclick = () => {
       const existant = favoris.find(f => f.texte.toLowerCase() === el.dataset.fav.toLowerCase())
-      if (existant) deleteDoc(doc(refFavoris, existant.id))
-      else addDoc(refFavoris, { texte: el.dataset.fav, rayon: el.dataset.rayon })
+      if (existant) supprimerDoc(doc(refFavoris, existant.id))
+      else ajouterDoc(refFavoris, { texte: el.dataset.fav, rayon: el.dataset.rayon })
     }
   })
   container.querySelectorAll('[data-fav-texte]').forEach(el => {
     el.onclick = (e) => {
       if (e.target.dataset.favSuppr) {
-        deleteDoc(doc(refFavoris, e.target.dataset.favSuppr))
+        supprimerDoc(doc(refFavoris, e.target.dataset.favSuppr))
         return
       }
-      addDoc(refEpicerie, { texte: el.dataset.favTexte, rayon: el.dataset.favRayon, quantite: '', prix: '', fait: false })
+      ajouterDoc(refEpicerie, { texte: el.dataset.favTexte, rayon: el.dataset.favRayon, quantite: '', prix: '', fait: false })
     }
   })
   const ajouter = () => {
     const texte = container.querySelector('#epicerie-texte').value.trim()
     if (!texte) return
-    addDoc(refEpicerie, {
+    ajouterDoc(refEpicerie, {
       texte,
       rayon: container.querySelector('#epicerie-rayon').value,
       quantite: container.querySelector('#epicerie-qte').value.trim(),
@@ -737,7 +758,7 @@ function renderMagasinage() {
   const restant = epicerieItems.reduce((a, i) => a + (i.fait ? 0 : (parseFloat(i.prix) || 0)), 0)
 
   let html = `<div class="fs-head">
-    <button type="button" class="icon-btn" id="fermer-magasinage"><i class="ph ph-x"></i></button>
+    <button type="button" class="icon-btn" id="fermer-magasinage" aria-label="Fermer le mode magasinage"><i class="ph ph-x"></i></button>
     <div class="main"><div class="titre">Mode magasinage</div><div class="meta">${faits} des ${total} items dans le panier</div></div>
     <span class="total">${argent(panier)}</span>
   </div>
@@ -772,11 +793,13 @@ function renderMagasinage() {
   el.querySelectorAll('[data-shop]').forEach(b => {
     b.onclick = () => {
       const item = epicerieItems.find(i => i.id === b.dataset.shop)
-      updateDoc(doc(refEpicerie, item.id), { fait: !item.fait })
+      modifierDoc(doc(refEpicerie, item.id), { fait: !item.fait })
     }
   })
   el.querySelector('#terminer-achats').onclick = () => {
-    epicerieItems.filter(i => i.fait).forEach(i => deleteDoc(doc(refEpicerie, i.id)))
+    const achetes = epicerieItems.filter(i => i.fait)
+    if (achetes.length && !confirm(`Retirer les ${achetes.length} items achetés de la liste ?`)) return
+    achetes.forEach(i => supprimerDoc(doc(refEpicerie, i.id)))
     fermerMagasinage()
   }
 }
@@ -850,6 +873,30 @@ function sixDerniersMois() {
   return out
 }
 
+function exporterDepensesCSV() {
+  const items = itemsPourMois(moisSelectionne)
+  if (items.length === 0) {
+    alert('Rien à exporter pour cette période.')
+    return
+  }
+  const lignes = [['Description', 'Montant', 'Payé par', 'Catégorie', 'Mois'].join(',')]
+  items.forEach(i => {
+    const mois = i.date ? i.date.slice(0, 7) : (moisSelectionne === 'tous' ? '' : moisSelectionne)
+    const champs = [i.desc, i.montant, i.payeur, categorieDe(i), mois].map(v => `"${String(v).replace(/"/g, '""')}"`)
+    lignes.push(champs.join(','))
+  })
+  const csv = '﻿' + lignes.join('\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `depenses-${moisSelectionne === 'tous' ? 'toutes' : moisSelectionne}.csv`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 function renderDepenses() {
   const container = document.getElementById('section-depenses')
   const items = itemsPourMois(moisSelectionne)
@@ -859,7 +906,9 @@ function renderDepenses() {
   const max = Math.max(1, ...historique.map(h => h.total))
   const moyenne = historique.reduce((a, h) => a + h.total, 0) / 6
 
-  let html = enTete('Dépenses', formatMois(moisSelectionne === 'tous' ? moisActuelCle() : moisSelectionne), boutonsEnTete())
+  let html = enTete('Dépenses', formatMois(moisSelectionne === 'tous' ? moisActuelCle() : moisSelectionne), `
+    <button type="button" class="icon-btn" id="exporter-depenses" aria-label="Exporter en CSV"><i class="ph ph-download-simple"></i></button>
+    ${boutonsEnTete()}`)
 
   html += `<div class="body">
     <div class="hero">
@@ -911,7 +960,7 @@ function renderDepenses() {
       <div class="pill-icon"><i class="ph ${iconeDepense(categorieDe(item))}"></i></div>
       <div class="main"><div class="titre">${escapeHtml(item.desc)}</div><div class="meta">payé par ${escapeHtml(item.payeur)}${item.instance ? ' · récurrent' : ''}</div></div>
       <span class="montant-cell">${argent(item.montant)}</span>
-      ${item.instance ? '' : `<button type="button" class="ghost-btn" data-dep-suppr="${item.id}"><i class="ph ph-x"></i></button>`}
+      ${item.instance ? '' : `<button type="button" class="ghost-btn" data-dep-suppr="${item.id}" aria-label="Supprimer la dépense ${escapeHtml(item.desc)}"><i class="ph ph-x"></i></button>`}
     </div>`
   })
 
@@ -932,9 +981,9 @@ function renderDepenses() {
   recurrentes.forEach(r => {
     const paye = !!(r.moisPayes && r.moisPayes[moisSelectionne])
     html += `<div class="row">
-      <button type="button" class="check${paye ? ' on' : ''}" data-rec="${r.id}" ${moisSelectionne === 'tous' ? 'disabled style="opacity:.45"' : ''}><i class="ph-fill ph-check"></i></button>
+      <button type="button" class="check${paye ? ' on' : ''}" data-rec="${r.id}" ${moisSelectionne === 'tous' ? 'disabled style="opacity:.45"' : ''} aria-label="${escapeHtml(r.desc)} : ${paye ? 'marquer non payé' : 'marquer payé'}"><i class="ph-fill ph-check"></i></button>
       <div class="main"><div class="titre">${escapeHtml(r.desc)}</div><div class="meta">${argent(r.montant)} · ${escapeHtml(r.payeur)}<span class="tag">${escapeHtml(categorieDe(r))}</span></div></div>
-      <button type="button" class="ghost-btn" data-rec-suppr="${r.id}"><i class="ph ph-x"></i></button>
+      <button type="button" class="ghost-btn" data-rec-suppr="${r.id}" aria-label="Supprimer ${escapeHtml(r.desc)}"><i class="ph ph-x"></i></button>
     </div>`
   })
 
@@ -950,19 +999,22 @@ function renderDepenses() {
 
   container.innerHTML = html
   brancherEnTete(container)
+  container.querySelector('#exporter-depenses').onclick = exporterDepensesCSV
   container.querySelector('#depenses-mois').onchange = (e) => {
     moisSelectionne = e.target.value
     renderDepenses()
   }
   container.querySelectorAll('[data-dep-suppr]').forEach(el => {
-    el.onclick = () => deleteDoc(doc(refDepenses, el.dataset.depSuppr))
+    el.onclick = () => {
+      if (confirm('Supprimer cette dépense ?')) supprimerDoc(doc(refDepenses, el.dataset.depSuppr))
+    }
   })
   container.querySelector('#depenses-ajouter').onclick = () => {
     const desc = container.querySelector('#depenses-desc').value.trim()
     const montant = parseFloat(container.querySelector('#depenses-montant').value)
     const payeur = container.querySelector('#depenses-payeur').value.trim()
     if (!desc || !montant || !payeur) return
-    addDoc(refDepenses, {
+    ajouterDoc(refDepenses, {
       desc, montant, payeur,
       categorie: container.querySelector('#depenses-categorie').value,
       date: formatDateISO(new Date()),
@@ -974,18 +1026,20 @@ function renderDepenses() {
       const r = recurrentes.find(x => x.id === el.dataset.rec)
       const moisPayes = Object.assign({}, r.moisPayes || {})
       moisPayes[moisSelectionne] = !moisPayes[moisSelectionne]
-      updateDoc(doc(refDepenses, r.id), { moisPayes })
+      modifierDoc(doc(refDepenses, r.id), { moisPayes })
     }
   })
   container.querySelectorAll('[data-rec-suppr]').forEach(el => {
-    el.onclick = () => deleteDoc(doc(refDepenses, el.dataset.recSuppr))
+    el.onclick = () => {
+      if (confirm('Supprimer cette dépense récurrente ?')) supprimerDoc(doc(refDepenses, el.dataset.recSuppr))
+    }
   })
   container.querySelector('#recurrente-ajouter').onclick = () => {
     const desc = container.querySelector('#recurrente-desc').value.trim()
     const montant = parseFloat(container.querySelector('#recurrente-montant').value)
     const payeur = container.querySelector('#recurrente-payeur').value.trim()
     if (!desc || !montant || !payeur) return
-    addDoc(refDepenses, {
+    ajouterDoc(refDepenses, {
       desc, montant, payeur,
       categorie: container.querySelector('#recurrente-categorie').value,
       recurrente: true,
@@ -995,6 +1049,45 @@ function renderDepenses() {
 }
 
 // — rappels —
+// Notifications "best effort" : ça marche seulement quand l'app est ouverte (ou récemment ouverte
+// en arrière-plan sur ordi/Android). Il n'y a pas de vraie notification push en arrière-plan sans
+// serveur (Firebase Cloud Messaging + Cloud Functions), et iOS Safari est très limité de toute façon.
+
+function supportNotif() {
+  return 'Notification' in window
+}
+
+function demanderPermissionNotif() {
+  if (supportNotif() && Notification.permission === 'default') Notification.requestPermission().then(() => rendreRappelsOuvert())
+}
+
+function correspondAujourdhui(quand) {
+  if (!quand) return false
+  const texte = quand.toLowerCase()
+  const maintenant = new Date()
+  if (texte.includes(noms_jours[maintenant.getDay()])) return true
+  const jourMois = maintenant.getDate()
+  if (jourMois === 1 && /\b1er\b/.test(texte)) return true
+  return new RegExp(`\\b${jourMois}\\b`).test(texte)
+}
+
+function verifierRappelsDuJour() {
+  if (!supportNotif() || Notification.permission !== 'granted') return
+  const aujourdhui = formatDateISO(new Date())
+  const deja = JSON.parse(localStorage.getItem('app-appart-notifs-vues') || '{}')
+  rappels.filter(r => r.actif && correspondAujourdhui(r.quand)).forEach(r => {
+    const cle = r.id + '|' + aujourdhui
+    if (deja[cle]) return
+    new Notification(r.nom, { body: r.quand, icon: 'icon-192.png' })
+    deja[cle] = true
+  })
+  localStorage.setItem('app-appart-notifs-vues', JSON.stringify(deja))
+}
+
+function rendreRappelsOuvert() {
+  const el = document.getElementById('rappels-overlay')
+  if (el.style.display === 'flex') ouvrirRappels()
+}
 
 function ouvrirRappels() {
   const el = document.getElementById('rappels-overlay')
@@ -1004,15 +1097,15 @@ function ouvrirRappels() {
   el.innerHTML = `<div class="sheet-bas">
     <div class="sheet-head">
       <div><div class="titre">Rappels</div><div class="meta">${actifs} actifs</div></div>
-      <button type="button" class="icon-btn" id="fermer-rappels"><i class="ph ph-x"></i></button>
+      <button type="button" class="icon-btn" id="fermer-rappels" aria-label="Fermer"><i class="ph ph-x"></i></button>
     </div>
     <div class="card">
       ${rappels.length === 0 ? '<p class="empty">Aucun rappel</p>' : rappels.map(r => `
         <div class="row">
           <div class="pill-icon" style="background:transparent;color:var(--accent-light)"><i class="ph ${r.icon || 'ph-bell'}"></i></div>
           <div class="main"><div class="titre" style="font-size:14.5px">${escapeHtml(r.nom)}</div><div class="meta">${escapeHtml(r.quand)}</div></div>
-          <button type="button" class="switch${r.actif ? ' on' : ''}" data-rap="${r.id}"><span></span></button>
-          <button type="button" class="ghost-btn" data-rap-suppr="${r.id}"><i class="ph ph-x"></i></button>
+          <button type="button" class="switch${r.actif ? ' on' : ''}" data-rap="${r.id}" aria-label="${r.actif ? 'Désactiver' : 'Activer'} le rappel ${escapeHtml(r.nom)}"><span></span></button>
+          <button type="button" class="ghost-btn" data-rap-suppr="${r.id}" aria-label="Supprimer le rappel ${escapeHtml(r.nom)}"><i class="ph ph-x"></i></button>
         </div>`).join('')}
     </div>
     <div class="form-grid" style="margin-top:12px">
@@ -1020,25 +1113,33 @@ function ouvrirRappels() {
       <input class="input" id="rappel-quand" placeholder="Quand (ex: mardi, 19 h)">
       <button type="button" class="btn" id="rappel-ajouter"><i class="ph ph-plus"></i>Ajouter</button>
     </div>
-    <p class="meta" style="margin-top:12px;color:var(--ink-faint)">Les rappels s'affichent dans l'app. Pour recevoir de vraies notifications sur ton iPhone, ajoute l'app à l'écran d'accueil.</p>
+    ${supportNotif() && Notification.permission !== 'granted' ? `
+    <button type="button" class="btn btn-quiet btn-block" id="activer-notifs" style="margin-top:12px"><i class="ph ph-bell-ringing"></i>Activer les notifications</button>` : ''}
+    <p class="meta" style="margin-top:12px;color:var(--ink-faint)">${supportNotif() && Notification.permission === 'granted'
+      ? "Les rappels actifs t'avertissent quand tu ouvres l'app le bon jour."
+      : "Les rappels s'affichent dans l'app. Pour recevoir de vraies notifications sur ton iPhone, ajoute l'app à l'écran d'accueil."}</p>
   </div>`
 
   el.onclick = (e) => { if (e.target.id === 'rappels-overlay') el.style.display = 'none' }
   el.querySelector('#fermer-rappels').onclick = () => { el.style.display = 'none' }
+  const boutonNotifs = el.querySelector('#activer-notifs')
+  if (boutonNotifs) boutonNotifs.onclick = demanderPermissionNotif
   el.querySelectorAll('[data-rap]').forEach(b => {
     b.onclick = () => {
       const r = rappels.find(x => x.id === b.dataset.rap)
-      updateDoc(doc(refRappels, r.id), { actif: !r.actif })
+      modifierDoc(doc(refRappels, r.id), { actif: !r.actif })
     }
   })
   el.querySelectorAll('[data-rap-suppr]').forEach(b => {
-    b.onclick = () => deleteDoc(doc(refRappels, b.dataset.rapSuppr))
+    b.onclick = () => {
+      if (confirm('Supprimer ce rappel ?')) supprimerDoc(doc(refRappels, b.dataset.rapSuppr))
+    }
   })
   el.querySelector('#rappel-ajouter').onclick = () => {
     const nom = el.querySelector('#rappel-nom').value.trim()
     const quand = el.querySelector('#rappel-quand').value.trim()
     if (!nom) return
-    addDoc(refRappels, { nom, quand: quand || 'sans horaire', icon: 'ph-bell', actif: true })
+    ajouterDoc(refRappels, { nom, quand: quand || 'sans horaire', icon: 'ph-bell', actif: true })
     el.querySelector('#rappel-nom').value = ''
     el.querySelector('#rappel-quand').value = ''
   }
@@ -1046,8 +1147,20 @@ function ouvrirRappels() {
 
 // — rendu global —
 
+let renduEnAttente = false
+
+function champActif() {
+  const el = document.activeElement
+  return !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA')
+}
+
 function rendre() {
   if (!pret) return
+  if (champActif()) {
+    renduEnAttente = true
+    return
+  }
+  renduEnAttente = false
   renderAccueil()
   renderChecklist()
   renderRepas()
@@ -1059,6 +1172,12 @@ function rendre() {
   goTo(ongletActuel)
 }
 
+// tant qu'on tape dans un champ, on ne redessine pas l'écran (ça effacerait le texte en cours)
+// dès qu'on quitte le champ, on rattrape le rendu si des changements sont arrivés entretemps
+document.addEventListener('focusout', () => {
+  if (renduEnAttente) rendre()
+})
+
 // — démarrage —
 
 signInAnonymously(auth).then(() => {
@@ -1068,10 +1187,10 @@ signInAnonymously(auth).then(() => {
   setupNav()
 
   getDocs(refChecklist).then(snap => {
-    if (snap.empty) items_depart.forEach(([cat, txt]) => addDoc(refChecklist, { texte: txt, categorie: cat, fait: false }))
+    if (snap.empty) items_depart.forEach(([cat, txt]) => ajouterDoc(refChecklist, { texte: txt, categorie: cat, fait: false }))
   })
   getDocs(refRappels).then(snap => {
-    if (snap.empty) rappels_depart.forEach(r => addDoc(refRappels, r))
+    if (snap.empty) rappels_depart.forEach(r => ajouterDoc(refRappels, r))
   })
 
   const suivre = (ref, setter) => onSnapshot(ref, snap => {
@@ -1086,7 +1205,10 @@ signInAnonymously(auth).then(() => {
   suivre(refDepenses, v => { depensesItems = v })
   suivre(refRepas, v => { repasItems = v })
   suivre(refRecettes, v => { recettes = v })
-  suivre(refRappels, v => { rappels = v })
+  suivre(refRappels, v => { rappels = v; verifierRappelsDuJour() })
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') verifierRappelsDuJour()
+  })
   onSnapshot(refConfig, snap => {
     dateCible = snap.exists() ? (snap.data().dateCible || '') : ''
     rendre()
