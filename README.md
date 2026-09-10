@@ -13,12 +13,12 @@ Rien à faire : GitHub Pages sert les fichiers directement depuis la branche `ma
 ## Fonctionnalités
 
 - **Profil** : au premier lancement, tu choisis Léonie ou Gabriel (bouton en haut à droite pour changer). Ça pré-remplit le "payé par" des dépenses.
-- **Thème clair/sombre** : bouton lune/soleil en haut à droite, suit le thème du système par défaut.
 - **Checklist** : compte à rebours jusqu'à la date de déménagement, qui a acheté chaque item, et pour chaque item — lien vers le produit et une note.
 - **Tâches** : liste de rappels de base (sortir les poubelles, etc.) avec récurrence (une fois / chaque semaine / chaque mois) et le nom de qui l'a fait la dernière fois.
 - **Repas** : calendrier de la semaine avec déjeuner, dîner et souper pour chaque jour — les ingrédients notés s'ajoutent automatiquement à l'épicerie (sans doublon si déjà présents).
 - **Épicerie** : items groupés par rayon, avec quantité et prix, une recherche, un total estimé du panier, et des favoris (étoile sur un item pour le sauvegarder, chip cliquable pour le rajouter vite la prochaine fois).
-- **Dépenses** : groupées par catégorie, filtre par mois, règlement automatique pour n'importe quel nombre de personnes, et une section "Dépenses récurrentes" (loyer, internet...) où tu coches juste "payé" chaque mois sans retaper.
+- **Dépenses** : groupées par catégorie, filtre par mois, règlement automatique pour n'importe quel nombre de personnes, une section "Dépenses récurrentes" (loyer, internet...) où tu coches juste "payé" chaque mois sans retaper, et un export CSV du mois affiché.
+- **Rappels** : liste de rappels personnalisables (loyer, planifier les repas...) accessible via la cloche en haut à droite. Si tu actives les notifications, l'app t'avertit quand tu l'ouvres un jour où un rappel actif tombe — ça ne fonctionne que pendant que l'app est ouverte, pas en vraie notification push en arrière-plan (ça demanderait un serveur).
 
 ## Base de données
 
