@@ -37,7 +37,6 @@ const auth = getAuth(app)
 const refChecklist = collection(db, 'checklist')
 const refTaches = collection(db, 'taches')
 const refEpicerie = collection(db, 'epicerie')
-const refFavoris = collection(db, 'favoris')
 const refDepenses = collection(db, 'depenses')
 const refRepas = collection(db, 'repas')
 const refRecettes = collection(db, 'recettes')
@@ -60,7 +59,6 @@ const categoriesChecklist = [
   { cat: 'Tout', icon: 'ph-house-line' },
   { cat: 'Nourriture', icon: 'ph-bowl-food' }
 ]
-const categoriesEpicerie = ['Fruits et légumes', 'Produits laitiers', 'Viandes et poissons', 'Épicerie', 'Surgelés', 'Autres']
 const categoriesDepenses = [
   { cat: 'Loyer', icon: 'ph-house-line' },
   { cat: 'Épicerie', icon: 'ph-shopping-cart' },
@@ -146,7 +144,6 @@ function formatMois(cle) {
 let checklistItems = []
 let tachesItems = []
 let epicerieItems = []
-let favoris = []
 let depensesItems = []
 let repasItems = []
 let recettes = []
@@ -156,16 +153,18 @@ let pret = false
 
 let ongletActuel = 'accueil'
 let checklistOuvert = null
-let epicerieRecherche = ''
 let repasOuvert = null
 let semaineDebut = lundiDeCetteSemaine(new Date())
 let moisSelectionne = moisActuelCle()
-let magasinageOuvert = false
 let calMois = moisActuelCle()
 let calJourOuvert = null
 let tacheOuverte = null
+let tacheFormOuvert = false
 let recOuvert = null
 let depensesOnglet = 'resume'
+let depDetailOuvert = false
+let depAjoutOuvert = false
+let recAjoutOuvert = false
 
 function currentName() {
   return localStorage.getItem('app-appart-nom') || ''
@@ -279,7 +278,6 @@ function renderAccueil() {
   const repasAujourdhui = repasItems.find(r => r.id === formatDateISO(maintenant)) || {}
   const souper = repasAujourdhui.souper && repasAujourdhui.souper.texte
   const epicerieActifs = epicerieItems.filter(i => !i.fait)
-  const totalEpicerie = epicerieActifs.reduce((a, i) => a + (parseFloat(i.prix) || 0), 0)
   const { transactions } = reglement()
   const t0 = transactions[0]
 
@@ -381,7 +379,7 @@ function renderAccueil() {
   }
 
   html += `</div>
-    <div class="form-grid">
+    ${tacheFormOuvert ? `<div class="form-grid">
       <input class="input full" id="tache-texte" placeholder="Nouvelle tâche">
       <select class="input" id="tache-recurrence">
         <option value="aucune">Une fois</option>
@@ -394,7 +392,7 @@ function renderAccueil() {
       </select>
       <input class="input" id="tache-jour-mois" type="number" min="1" max="31" placeholder="Jour du mois" style="display:none">
       <button type="button" class="btn" id="tache-ajouter"><i class="ph ph-plus"></i></button>
-    </div>
+    </div>` : `<button type="button" class="btn btn-quiet btn-block" id="tache-form-ouvrir"><i class="ph ph-plus"></i>Ajouter une tâche</button>`}
 
     <div class="tiles">
       <button type="button" class="tile" data-go="depenses">
@@ -404,11 +402,10 @@ function renderAccueil() {
       </button>
       <button type="button" class="tile" data-go="epicerie">
         <div class="label"><i class="ph ph-shopping-cart"></i>Épicerie</div>
-        <div class="valeur">${epicerieActifs.length} items</div>
-        <div class="sous">${argent(totalEpicerie)} estimé</div>
+        <div class="valeur">${epicerieActifs.length}</div>
+        <div class="sous">à acheter</div>
       </button>
     </div>
-    <button type="button" class="btn btn-block" id="accueil-magasiner"><i class="ph ph-shopping-cart"></i>Démarrer le mode magasinage</button>
   </div>`
 
   container.innerHTML = html
@@ -462,30 +459,36 @@ function renderAccueil() {
   container.querySelectorAll('[data-go]').forEach(el => {
     el.onclick = () => goTo(el.dataset.go)
   })
-  container.querySelector('#accueil-magasiner').onclick = ouvrirMagasinage
 
+  const formOuvrir = container.querySelector('#tache-form-ouvrir')
+  if (formOuvrir) {
+    formOuvrir.onclick = () => { tacheFormOuvert = true; renderAccueil() }
+  }
   const recSelect = container.querySelector('#tache-recurrence')
-  const jourDate = container.querySelector('#tache-jour-date')
-  const jourSemaine = container.querySelector('#tache-jour-semaine')
-  const jourMois = container.querySelector('#tache-jour-mois')
-  recSelect.onchange = () => {
-    jourDate.style.display = recSelect.value === 'aucune' ? '' : 'none'
-    jourSemaine.style.display = recSelect.value === 'hebdo' ? '' : 'none'
-    jourMois.style.display = recSelect.value === 'mensuel' ? '' : 'none'
+  if (recSelect) {
+    const jourDate = container.querySelector('#tache-jour-date')
+    const jourSemaine = container.querySelector('#tache-jour-semaine')
+    const jourMois = container.querySelector('#tache-jour-mois')
+    recSelect.onchange = () => {
+      jourDate.style.display = recSelect.value === 'aucune' ? '' : 'none'
+      jourSemaine.style.display = recSelect.value === 'hebdo' ? '' : 'none'
+      jourMois.style.display = recSelect.value === 'mensuel' ? '' : 'none'
+    }
+    const ajouterTache = () => {
+      const texte = container.querySelector('#tache-texte').value.trim()
+      if (!texte) return
+      const recurrence = recSelect.value
+      let jour = ''
+      if (recurrence === 'aucune') jour = jourDate.value
+      else if (recurrence === 'hebdo') jour = jourSemaine.value
+      else if (recurrence === 'mensuel') jour = jourMois.value.trim()
+      ajouterDoc(refTaches, { texte, recurrence, jour, fait: false })
+      tacheFormOuvert = false
+      renderAccueil()
+    }
+    container.querySelector('#tache-ajouter').onclick = ajouterTache
+    container.querySelector('#tache-texte').onkeydown = (e) => { if (e.key === 'Enter') ajouterTache() }
   }
-  const ajouterTache = () => {
-    const texte = container.querySelector('#tache-texte').value.trim()
-    if (!texte) return
-    const recurrence = recSelect.value
-    let jour = ''
-    if (recurrence === 'aucune') jour = jourDate.value
-    else if (recurrence === 'hebdo') jour = jourSemaine.value
-    else if (recurrence === 'mensuel') jour = jourMois.value.trim()
-    ajouterDoc(refTaches, { texte, recurrence, jour, fait: false })
-    container.querySelector('#tache-texte').value = ''
-  }
-  container.querySelector('#tache-ajouter').onclick = ajouterTache
-  container.querySelector('#tache-texte').onkeydown = (e) => { if (e.key === 'Enter') ajouterTache() }
 }
 
 // — checklist —
@@ -743,7 +746,7 @@ function lundiDeCetteSemaine(date) {
 function envoyerAEpicerie(lignes) {
   lignes.map(l => l.trim()).filter(Boolean).forEach(ligne => {
     const dejaLa = epicerieItems.some(i => !i.fait && i.texte.toLowerCase() === ligne.toLowerCase())
-    if (!dejaLa) ajouterDoc(refEpicerie, { texte: ligne, rayon: 'Autres', quantite: '', prix: '', fait: false })
+    if (!dejaLa) ajouterDoc(refEpicerie, { texte: ligne, fait: false })
   })
 }
 
@@ -896,73 +899,33 @@ function renderRepas() {
 
 // — épicerie —
 
-function rayonDe(item) {
-  return categoriesEpicerie.includes(item.rayon) ? item.rayon : 'Autres'
-}
-
-function estFavori(texte) {
-  return favoris.some(f => f.texte.toLowerCase() === texte.toLowerCase())
-}
-
 function renderEpicerie() {
   const container = document.getElementById('section-epicerie')
-  const recherche = epicerieRecherche.trim().toLowerCase()
-  const items = recherche ? epicerieItems.filter(i => i.texte.toLowerCase().includes(recherche)) : epicerieItems
   const actifs = epicerieItems.filter(i => !i.fait)
-  const totalEstime = actifs.reduce((a, i) => a + (parseFloat(i.prix) || 0), 0)
+  const faits = epicerieItems.filter(i => i.fait)
 
-  let html = enTete('Épicerie', `${actifs.length} items · ${argent(totalEstime)} estimé`, `
-    <button type="button" class="btn btn-sm" id="ouvrir-magasinage"><i class="ph ph-shopping-cart"></i>Magasiner</button>`)
+  let html = enTete('Épicerie', `${actifs.length} à acheter`, boutonsEnTete())
 
-  html += `<div class="body">
-    <input class="input" id="epicerie-recherche" placeholder="Rechercher un item..." value="${escapeHtml(epicerieRecherche)}">`
-
-  if (favoris.length > 0) {
-    html += '<div class="chips">' + favoris.map(f =>
-      `<span class="chip" data-fav-texte="${escapeHtml(f.texte)}" data-fav-rayon="${escapeHtml(f.rayon)}">${escapeHtml(f.texte)}<span class="x" data-fav-suppr="${f.id}">×</span></span>`
-    ).join('') + '</div>'
+  html += '<div class="body"><div class="card">'
+  if (epicerieItems.length === 0) {
+    html += '<p class="empty">Liste vide</p>'
   }
-
-  categoriesEpicerie.forEach(cat => {
-    const liste = items.filter(i => rayonDe(i) === cat)
-    if (liste.length === 0) return
-    html += `<div><div class="rayon-titre">${cat}</div><div class="card">`
-    liste.forEach(item => {
-      const meta = [item.quantite ? item.quantite + ' ×' : '', item.prix ? argent(parseFloat(item.prix)) : '', item.fait ? 'dans le panier' : '']
-        .filter(Boolean).join(' · ')
-      html += `<div class="row${item.fait ? ' done' : ''}">
-        <button type="button" class="check round${item.fait ? ' on' : ''}" data-ep="${item.id}" aria-label="${escapeHtml(item.texte)} : ${item.fait ? 'retirer du panier' : 'ajouter au panier'}"><i class="ph-fill ph-check"></i></button>
-        <div class="main"><div class="titre">${escapeHtml(item.texte)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}</div>
-        <button type="button" class="ghost-btn fav${estFavori(item.texte) ? ' on' : ''}" data-fav="${escapeHtml(item.texte)}" data-rayon="${escapeHtml(rayonDe(item))}" aria-label="${estFavori(item.texte) ? 'Retirer des favoris' : 'Ajouter aux favoris'}"><i class="ph${estFavori(item.texte) ? '-fill' : ''} ph-star"></i></button>
-        <button type="button" class="ghost-btn" data-ep-suppr="${item.id}" aria-label="Supprimer ${escapeHtml(item.texte)}"><i class="ph ph-x"></i></button>
-      </div>`
-    })
-    html += '</div></div>'
+  actifs.concat(faits).forEach(item => {
+    html += `<div class="row${item.fait ? ' done' : ''}">
+      <button type="button" class="check round${item.fait ? ' on' : ''}" data-ep="${item.id}" aria-label="${escapeHtml(item.texte)} : ${item.fait ? 'décocher' : 'cocher'}"><i class="ph-fill ph-check"></i></button>
+      <div class="main"><div class="titre">${escapeHtml(item.texte)}</div></div>
+      <button type="button" class="ghost-btn" data-ep-suppr="${item.id}" aria-label="Supprimer ${escapeHtml(item.texte)}"><i class="ph ph-x"></i></button>
+    </div>`
   })
-
-  if (items.length === 0) {
-    html += `<div class="card"><p class="empty">${recherche ? 'Aucun résultat' : 'Liste vide'}</p></div>`
-  }
-
-  html += `<div class="form-grid">
-    <select class="input full" id="epicerie-rayon">${categoriesEpicerie.map(c => `<option value="${c}">${c}</option>`).join('')}</select>
-    <input class="input" id="epicerie-texte" placeholder="Item" style="flex-basis:100%">
-    <input class="input" id="epicerie-qte" placeholder="Qté">
-    <input class="input" id="epicerie-prix" placeholder="Prix" type="number" step="0.01">
-    <button type="button" class="btn" id="epicerie-ajouter"><i class="ph ph-plus"></i>Ajouter</button>
-  </div></div>`
+  html += `</div>
+    <div class="form-row">
+      <input class="input full" id="epicerie-texte" placeholder="Ajouter un item">
+      <button type="button" class="btn" id="epicerie-ajouter"><i class="ph ph-plus"></i></button>
+    </div>
+  </div>`
 
   container.innerHTML = html
   brancherEnTete(container)
-  container.querySelector('#ouvrir-magasinage').onclick = ouvrirMagasinage
-  const rech = container.querySelector('#epicerie-recherche')
-  rech.oninput = (e) => {
-    epicerieRecherche = e.target.value
-    renderEpicerie()
-    const input = document.getElementById('epicerie-recherche')
-    input.focus()
-    input.setSelectionRange(input.value.length, input.value.length)
-  }
   container.querySelectorAll('[data-ep]').forEach(el => {
     el.onclick = () => {
       const item = epicerieItems.find(i => i.id === el.dataset.ep)
@@ -974,109 +937,14 @@ function renderEpicerie() {
       if (confirm('Supprimer cet item de la liste ?')) supprimerDoc(doc(refEpicerie, el.dataset.epSuppr))
     }
   })
-  container.querySelectorAll('[data-fav]').forEach(el => {
-    el.onclick = () => {
-      const existant = favoris.find(f => f.texte.toLowerCase() === el.dataset.fav.toLowerCase())
-      if (existant) supprimerDoc(doc(refFavoris, existant.id))
-      else ajouterDoc(refFavoris, { texte: el.dataset.fav, rayon: el.dataset.rayon })
-    }
-  })
-  container.querySelectorAll('[data-fav-texte]').forEach(el => {
-    el.onclick = (e) => {
-      if (e.target.dataset.favSuppr) {
-        supprimerDoc(doc(refFavoris, e.target.dataset.favSuppr))
-        return
-      }
-      ajouterDoc(refEpicerie, { texte: el.dataset.favTexte, rayon: el.dataset.favRayon, quantite: '', prix: '', fait: false })
-    }
-  })
   const ajouter = () => {
     const texte = container.querySelector('#epicerie-texte').value.trim()
     if (!texte) return
-    ajouterDoc(refEpicerie, {
-      texte,
-      rayon: container.querySelector('#epicerie-rayon').value,
-      quantite: container.querySelector('#epicerie-qte').value.trim(),
-      prix: container.querySelector('#epicerie-prix').value.trim(),
-      fait: false
-    })
+    ajouterDoc(refEpicerie, { texte, fait: false })
     container.querySelector('#epicerie-texte').value = ''
-    container.querySelector('#epicerie-qte').value = ''
-    container.querySelector('#epicerie-prix').value = ''
   }
   container.querySelector('#epicerie-ajouter').onclick = ajouter
   container.querySelector('#epicerie-texte').onkeydown = (e) => { if (e.key === 'Enter') ajouter() }
-}
-
-// — mode magasinage —
-
-function ouvrirMagasinage() {
-  magasinageOuvert = true
-  renderMagasinage()
-}
-
-function fermerMagasinage() {
-  magasinageOuvert = false
-  document.getElementById('magasinage').style.display = 'none'
-  document.body.style.overflow = ''
-}
-
-function renderMagasinage() {
-  const el = document.getElementById('magasinage')
-  if (!magasinageOuvert) return
-  el.style.display = 'flex'
-  document.body.style.overflow = 'hidden'
-
-  const total = epicerieItems.length
-  const faits = epicerieItems.filter(i => i.fait).length
-  const panier = epicerieItems.reduce((a, i) => a + (i.fait ? (parseFloat(i.prix) || 0) : 0), 0)
-  const restant = epicerieItems.reduce((a, i) => a + (i.fait ? 0 : (parseFloat(i.prix) || 0)), 0)
-
-  let html = `<div class="fs-head">
-    <button type="button" class="icon-btn" id="fermer-magasinage" aria-label="Fermer le mode magasinage"><i class="ph ph-x"></i></button>
-    <div class="main"><div class="titre">Mode magasinage</div><div class="meta">${faits} des ${total} items dans le panier</div></div>
-    <span class="total">${argent(panier)}</span>
-  </div>
-  <div class="fs-progress"><span style="width:${total ? Math.round((faits / total) * 100) : 0}%"></span></div>
-  <div class="fs-body">`
-
-  categoriesEpicerie.forEach(cat => {
-    const liste = epicerieItems.filter(i => rayonDe(i) === cat)
-    if (liste.length === 0) return
-    html += `<div class="rayon-groupe"><div class="rayon-titre">${cat}</div>`
-    liste.forEach(item => {
-      const meta = [item.quantite ? item.quantite + ' ×' : '', item.prix ? argent(parseFloat(item.prix)) : '', item.fait ? 'dans le panier' : '']
-        .filter(Boolean).join(' · ')
-      html += `<button type="button" class="shop-row${item.fait ? ' done' : ''}" data-shop="${item.id}">
-        <span class="check round${item.fait ? ' on' : ''}" style="pointer-events:none"><i class="ph-fill ph-check"></i></span>
-        <span class="main"><span class="titre" style="display:block">${escapeHtml(item.texte)}</span><span class="meta" style="display:block">${meta}</span></span>
-      </button>`
-    })
-    html += '</div>'
-  })
-
-  if (total === 0) html += '<p class="empty">Ta liste est vide</p>'
-
-  html += `</div>
-  <div class="fs-foot">
-    <div class="main"><div class="label">Reste à acheter</div><div class="valeur">${argent(restant)}</div></div>
-    <button type="button" class="btn" id="terminer-achats">Terminer les achats</button>
-  </div>`
-
-  el.innerHTML = html
-  el.querySelector('#fermer-magasinage').onclick = fermerMagasinage
-  el.querySelectorAll('[data-shop]').forEach(b => {
-    b.onclick = () => {
-      const item = epicerieItems.find(i => i.id === b.dataset.shop)
-      modifierDoc(doc(refEpicerie, item.id), { fait: !item.fait })
-    }
-  })
-  el.querySelector('#terminer-achats').onclick = () => {
-    const achetes = epicerieItems.filter(i => i.fait)
-    if (achetes.length && !confirm(`Retirer les ${achetes.length} items achetés de la liste ?`)) return
-    achetes.forEach(i => supprimerDoc(doc(refEpicerie, i.id)))
-    fermerMagasinage()
-  }
 }
 
 // — dépenses —
@@ -1214,37 +1082,41 @@ function renderDepenses() {
     html += `<div class="progress-legend" style="margin-top:10px"><span>${argent(total)} au total ce mois-ci</span></div>
     </div>
 
-    <div class="section-title"><span>Six derniers mois</span><span>moy. ${argent(moyenne)}</span></div>
-    <div class="card card-pad">
-      <div class="chart">
-        ${historique.map(h => `<div class="col${h.cle === moisSelectionne ? ' on' : ''}">
-          <div class="bar" style="height:${Math.round((h.total / max) * 100)}%"></div>
-          <span>${h.label}</span>
-        </div>`).join('')}
+    <button type="button" class="btn btn-quiet btn-block" id="dep-detail-toggle"><i class="ph ph-caret-${depDetailOuvert ? 'up' : 'down'}"></i>${depDetailOuvert ? 'Cacher les détails' : 'Voir plus de détails'}</button>`
+
+    if (depDetailOuvert) {
+      html += `<div class="section-title"><span>Six derniers mois</span><span>moy. ${argent(moyenne)}</span></div>
+      <div class="card card-pad">
+        <div class="chart">
+          ${historique.map(h => `<div class="col${h.cle === moisSelectionne ? ' on' : ''}">
+            <div class="bar" style="height:${Math.round((h.total / max) * 100)}%"></div>
+            <span>${h.label}</span>
+          </div>`).join('')}
+        </div>
+        <div class="chart-foot"><span>${formatMois(historique[5].cle)}</span><strong>${argent(historique[5].total)}</strong></div>
       </div>
-      <div class="chart-foot"><span>${formatMois(historique[5].cle)}</span><strong>${argent(historique[5].total)}</strong></div>
-    </div>
 
-    <div class="section-title"><span>Par catégorie</span></div>
-    <div class="card card-pad">`
+      <div class="section-title"><span>Par catégorie</span></div>
+      <div class="card card-pad">`
 
-    const parCat = categoriesDepenses.map(c => ({
-      cat: c.cat,
-      total: items.filter(i => categorieDe(i) === c.cat).reduce((a, i) => a + i.montant, 0)
-    })).filter(c => c.total > 0)
+      const parCat = categoriesDepenses.map(c => ({
+        cat: c.cat,
+        total: items.filter(i => categorieDe(i) === c.cat).reduce((a, i) => a + i.montant, 0)
+      })).filter(c => c.total > 0)
 
-    if (parCat.length === 0) {
-      html += '<p class="empty">Rien à afficher</p>'
-    } else {
-      const maxCat = Math.max(...parCat.map(c => c.total))
-      parCat.forEach(c => {
-        html += `<div class="bar-cat">
-          <div class="l"><span>${c.cat}</span><span>${argent(c.total)}</span></div>
-          <div class="t"><span style="width:${Math.round((c.total / maxCat) * 100)}%"></span></div>
-        </div>`
-      })
+      if (parCat.length === 0) {
+        html += '<p class="empty">Rien à afficher</p>'
+      } else {
+        const maxCat = Math.max(...parCat.map(c => c.total))
+        parCat.forEach(c => {
+          html += `<div class="bar-cat">
+            <div class="l"><span>${c.cat}</span><span>${argent(c.total)}</span></div>
+            <div class="t"><span style="width:${Math.round((c.total / maxCat) * 100)}%"></span></div>
+          </div>`
+        })
+      }
+      html += '</div>'
     }
-    html += '</div>'
   }
 
   if (depensesOnglet === 'historique') {
@@ -1258,15 +1130,19 @@ function renderDepenses() {
         ${item.instance ? '' : `<button type="button" class="ghost-btn" data-dep-suppr="${item.id}" aria-label="Supprimer la dépense ${escapeHtml(item.desc)}"><i class="ph ph-x"></i></button>`}
       </div>`
     })
-    html += `</div>
-    <p class="meta" style="margin:12px 2px 8px">Une dépense ponctuelle (sortie, achat...) :</p>
-    <div class="form-grid">
-      <input class="input full" id="depenses-desc" placeholder="Description">
-      <input class="input" id="depenses-montant" placeholder="Montant" type="number" step="0.01">
-      <input class="input" id="depenses-payeur" placeholder="Payé par" value="${escapeHtml(currentName())}">
-      <select class="input" id="depenses-categorie">${categoriesDepenses.map(c => `<option value="${c.cat}">${c.cat}</option>`).join('')}</select>
-      <button type="button" class="btn" id="depenses-ajouter"><i class="ph ph-plus"></i>Ajouter</button>
-    </div>`
+    html += '</div>'
+    if (depAjoutOuvert) {
+      html += `<p class="meta" style="margin:12px 2px 8px">Une dépense ponctuelle (sortie, achat...) :</p>
+      <div class="form-grid">
+        <input class="input full" id="depenses-desc" placeholder="Description">
+        <input class="input" id="depenses-montant" placeholder="Montant" type="number" step="0.01">
+        <input class="input" id="depenses-payeur" placeholder="Payé par" value="${escapeHtml(currentName())}">
+        <select class="input" id="depenses-categorie">${categoriesDepenses.map(c => `<option value="${c.cat}">${c.cat}</option>`).join('')}</select>
+        <button type="button" class="btn" id="depenses-ajouter"><i class="ph ph-plus"></i>Ajouter</button>
+      </div>`
+    } else {
+      html += `<button type="button" class="btn btn-quiet btn-block" id="dep-ajout-ouvrir" style="margin-top:12px"><i class="ph ph-plus"></i>Ajouter une dépense</button>`
+    }
   }
 
   if (depensesOnglet === 'recurrentes') {
@@ -1290,16 +1166,20 @@ function renderDepenses() {
         </div>`
       }
     })
-    html += `</div>
-    <p class="meta" style="margin:12px 2px 8px">Une nouvelle dépense récurrente :</p>
-    <div class="form-grid">
-      <input class="input full" id="recurrente-desc" placeholder="Description (ex: Loyer)">
-      <input class="input" id="recurrente-montant" placeholder="Montant" type="number" step="0.01">
-      <input class="input" id="recurrente-payeur" placeholder="Payé par" value="${escapeHtml(currentName())}">
-      <select class="input" id="recurrente-categorie">${categoriesDepenses.map(c => `<option value="${c.cat}">${c.cat}</option>`).join('')}</select>
-      <input class="input" id="recurrente-jour" type="number" min="1" max="31" placeholder="Jour du mois (optionnel)">
-      <button type="button" class="btn btn-quiet" id="recurrente-ajouter"><i class="ph ph-plus"></i>Ajouter</button>
-    </div>`
+    html += '</div>'
+    if (recAjoutOuvert) {
+      html += `<p class="meta" style="margin:12px 2px 8px">Une nouvelle dépense récurrente :</p>
+      <div class="form-grid">
+        <input class="input full" id="recurrente-desc" placeholder="Description (ex: Loyer)">
+        <input class="input" id="recurrente-montant" placeholder="Montant" type="number" step="0.01">
+        <input class="input" id="recurrente-payeur" placeholder="Payé par" value="${escapeHtml(currentName())}">
+        <select class="input" id="recurrente-categorie">${categoriesDepenses.map(c => `<option value="${c.cat}">${c.cat}</option>`).join('')}</select>
+        <input class="input" id="recurrente-jour" type="number" min="1" max="31" placeholder="Jour du mois (optionnel)">
+        <button type="button" class="btn btn-quiet" id="recurrente-ajouter"><i class="ph ph-plus"></i>Ajouter</button>
+      </div>`
+    } else {
+      html += `<button type="button" class="btn btn-quiet btn-block" id="rec-ajout-ouvrir" style="margin-top:12px"><i class="ph ph-plus"></i>Ajouter une dépense récurrente</button>`
+    }
   }
 
   html += '</div>'
@@ -1318,13 +1198,20 @@ function renderDepenses() {
     }
   })
 
+  const detailToggle = container.querySelector('#dep-detail-toggle')
+  if (detailToggle) {
+    detailToggle.onclick = () => { depDetailOuvert = !depDetailOuvert; renderDepenses() }
+  }
+
+  container.querySelectorAll('[data-dep-suppr]').forEach(el => {
+    el.onclick = () => {
+      if (confirm('Supprimer cette dépense ?')) supprimerDoc(doc(refDepenses, el.dataset.depSuppr))
+    }
+  })
+  const depAjoutOuvrir = container.querySelector('#dep-ajout-ouvrir')
+  if (depAjoutOuvrir) depAjoutOuvrir.onclick = () => { depAjoutOuvert = true; renderDepenses() }
   const depAjouter = container.querySelector('#depenses-ajouter')
   if (depAjouter) {
-    container.querySelectorAll('[data-dep-suppr]').forEach(el => {
-      el.onclick = () => {
-        if (confirm('Supprimer cette dépense ?')) supprimerDoc(doc(refDepenses, el.dataset.depSuppr))
-      }
-    })
     depAjouter.onclick = () => {
       const desc = container.querySelector('#depenses-desc').value.trim()
       const montant = parseFloat(container.querySelector('#depenses-montant').value)
@@ -1336,39 +1223,43 @@ function renderDepenses() {
         date: formatDateISO(new Date()),
         recurrente: false
       })
+      depAjoutOuvert = false
+      renderDepenses()
     }
   }
 
+  container.querySelectorAll('[data-rec]').forEach(el => {
+    el.onclick = () => {
+      const r = recurrentes.find(x => x.id === el.dataset.rec)
+      const moisPayes = Object.assign({}, r.moisPayes || {})
+      moisPayes[moisSelectionne] = !moisPayes[moisSelectionne]
+      modifierDoc(doc(refDepenses, r.id), { moisPayes })
+    }
+  })
+  container.querySelectorAll('[data-rec-suppr]').forEach(el => {
+    el.onclick = () => {
+      if (confirm('Supprimer cette dépense récurrente ?')) supprimerDoc(doc(refDepenses, el.dataset.recSuppr))
+    }
+  })
+  container.querySelectorAll('[data-detail-rec]').forEach(el => {
+    el.onclick = () => {
+      recOuvert = recOuvert === el.dataset.detailRec ? null : el.dataset.detailRec
+      renderDepenses()
+    }
+  })
+  container.querySelectorAll('[data-save-rec]').forEach(el => {
+    el.onclick = () => {
+      const id = el.dataset.saveRec
+      const jourPaiement = container.querySelector(`#rec-edit-jour-${id}`).value.trim()
+      modifierDoc(doc(refDepenses, id), { jourPaiement })
+      recOuvert = null
+      renderDepenses()
+    }
+  })
+  const recAjoutOuvrir = container.querySelector('#rec-ajout-ouvrir')
+  if (recAjoutOuvrir) recAjoutOuvrir.onclick = () => { recAjoutOuvert = true; renderDepenses() }
   const recAjouter = container.querySelector('#recurrente-ajouter')
   if (recAjouter) {
-    container.querySelectorAll('[data-rec]').forEach(el => {
-      el.onclick = () => {
-        const r = recurrentes.find(x => x.id === el.dataset.rec)
-        const moisPayes = Object.assign({}, r.moisPayes || {})
-        moisPayes[moisSelectionne] = !moisPayes[moisSelectionne]
-        modifierDoc(doc(refDepenses, r.id), { moisPayes })
-      }
-    })
-    container.querySelectorAll('[data-rec-suppr]').forEach(el => {
-      el.onclick = () => {
-        if (confirm('Supprimer cette dépense récurrente ?')) supprimerDoc(doc(refDepenses, el.dataset.recSuppr))
-      }
-    })
-    container.querySelectorAll('[data-detail-rec]').forEach(el => {
-      el.onclick = () => {
-        recOuvert = recOuvert === el.dataset.detailRec ? null : el.dataset.detailRec
-        renderDepenses()
-      }
-    })
-    container.querySelectorAll('[data-save-rec]').forEach(el => {
-      el.onclick = () => {
-        const id = el.dataset.saveRec
-        const jourPaiement = container.querySelector(`#rec-edit-jour-${id}`).value.trim()
-        modifierDoc(doc(refDepenses, id), { jourPaiement })
-        recOuvert = null
-        renderDepenses()
-      }
-    })
     recAjouter.onclick = () => {
       const desc = container.querySelector('#recurrente-desc').value.trim()
       const montant = parseFloat(container.querySelector('#recurrente-montant').value)
@@ -1381,6 +1272,8 @@ function renderDepenses() {
         recurrente: true,
         moisPayes: {}
       })
+      recAjoutOuvert = false
+      renderDepenses()
     }
   }
 }
@@ -1498,7 +1391,6 @@ function rendre() {
   renderEpicerie()
   renderDepenses()
   majBadge()
-  if (magasinageOuvert) renderMagasinage()
   if (document.getElementById('rappels-overlay').style.display === 'flex') ouvrirRappels()
   if (calJourOuvert && document.getElementById('jour-overlay').style.display === 'flex') ouvrirJour(calJourOuvert)
   goTo(ongletActuel)
@@ -1533,7 +1425,6 @@ signInAnonymously(auth).then(() => {
   suivre(refChecklist, v => { checklistItems = v })
   suivre(refTaches, v => { tachesItems = v })
   suivre(refEpicerie, v => { epicerieItems = v })
-  suivre(refFavoris, v => { favoris = v })
   suivre(refDepenses, v => { depensesItems = v })
   suivre(refRepas, v => { repasItems = v })
   suivre(refRecettes, v => { recettes = v })
