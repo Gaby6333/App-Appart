@@ -695,7 +695,7 @@ function ouvrirJour(iso) {
 
     <div class="section-title"><span>Paiements</span></div>
     <div class="card">
-      ${recurrentes.length === 0 && rappelsJour.length === 0 ? '<p class="empty">Rien de prévu</p>' : ''}
+      ${recurrentes.length === 0 ? '<p class="empty">Rien à payer ce jour-là</p>' : ''}
       ${recurrentes.map(r => {
         const paye = !!(r.moisPayes && r.moisPayes[cleMois])
         return `<div class="row">
@@ -703,7 +703,11 @@ function ouvrirJour(iso) {
           <div class="main"><div class="titre">${escapeHtml(r.desc)}</div><div class="meta">${argent(r.montant)}</div></div>
         </div>`
       }).join('')}
-      ${rappelsJour.map(r => `
+    </div>
+
+    <div class="section-title"><span>Rappels</span></div>
+    <div class="card">
+      ${rappelsJour.length === 0 ? '<p class="empty">Aucun rappel ce jour-là</p>' : rappelsJour.map(r => `
         <div class="row">
           <div class="pill-icon" style="background:transparent;color:var(--accent-light)"><i class="ph ${r.icon || 'ph-bell'}"></i></div>
           <div class="main"><div class="titre" style="font-size:14.5px">${escapeHtml(r.nom)}</div><div class="meta">${escapeHtml(r.quand)}</div></div>
