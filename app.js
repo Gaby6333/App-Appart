@@ -161,6 +161,10 @@ let repasOuvert = null
 let semaineDebut = lundiDeCetteSemaine(new Date())
 let moisSelectionne = moisActuelCle()
 let magasinageOuvert = false
+let calMois = moisActuelCle()
+let calJourOuvert = null
+let tacheOuverte = null
+let recOuvert = null
 
 function currentName() {
   return localStorage.getItem('app-appart-nom') || ''
@@ -270,7 +274,7 @@ function renderAccueil() {
   const total = checklistItems.length || 1
   const pct = Math.round((faits / total) * 100)
   const jours = joursRestants()
-  const aFaire = tachesItems.filter(t => !t.fait)
+  const aFaire = tachesItems.filter(t => !t.fait && tacheTombeLe(t, maintenant))
   const repasAujourdhui = repasItems.find(r => r.id === formatDateISO(maintenant)) || {}
   const souper = repasAujourdhui.souper && repasAujourdhui.souper.texte
   const epicerieActifs = epicerieItems.filter(i => !i.fait)
@@ -299,6 +303,45 @@ function renderAccueil() {
       <div class="progress-legend"><span>${faits} des ${checklistItems.length} items prêts</span><span>${pct} %</span></div>
     </div>
 
+    <div class="section-title"><span>Calendrier</span></div>
+    <div class="card card-pad">
+      <div class="cal-head">
+        <button type="button" class="icon-btn" id="cal-prec" aria-label="Mois précédent"><i class="ph ph-caret-left"></i></button>
+        <div class="cal-mois">${formatMois(calMois)}</div>
+        <button type="button" class="icon-btn" id="cal-suiv" aria-label="Mois suivant"><i class="ph ph-caret-right"></i></button>
+      </div>
+      <div class="cal-semaine">${noms_jours_courts.slice(1).concat(noms_jours_courts[0]).map(j => `<span>${j}</span>`).join('')}</div>
+      <div class="cal-grid">`
+
+  joursDuMoisCalendrier(calMois).forEach(d => {
+    if (!d) {
+      html += '<div class="cal-jour vide"></div>'
+      return
+    }
+    const iso = formatDateISO(d)
+    const { aRepas, taches, recurrentes, rappelsJour } = contenuDuJour(d)
+    const aPaiement = recurrentes.some(r => !(r.moisPayes && r.moisPayes[iso.slice(0, 7)]))
+    const estAujourdhui = iso === formatDateISO(maintenant)
+    html += `<button type="button" class="cal-jour${estAujourdhui ? ' today' : ''}${iso === calJourOuvert ? ' on' : ''}" data-jour="${iso}" aria-label="${noms_jours[d.getDay()]} ${d.getDate()}">
+      <span class="n">${d.getDate()}</span>
+      <span class="cal-dots">
+        ${aRepas ? '<span class="cal-dot repas"></span>' : ''}
+        ${taches.length ? '<span class="cal-dot tache"></span>' : ''}
+        ${aPaiement ? '<span class="cal-dot paiement"></span>' : ''}
+        ${rappelsJour.length ? '<span class="cal-dot rappel"></span>' : ''}
+      </span>
+    </button>`
+  })
+
+  html += `</div>
+      <div class="cal-legende">
+        <span><span class="cal-dot repas"></span>Repas</span>
+        <span><span class="cal-dot tache"></span>Tâche</span>
+        <span><span class="cal-dot paiement"></span>Paiement</span>
+        <span><span class="cal-dot rappel"></span>Rappel</span>
+      </div>
+    </div>
+
     <div class="section-title"><span>À faire aujourd'hui</span><span>${aFaire.length}</span></div>
     <div class="card">`
 
@@ -306,14 +349,28 @@ function renderAccueil() {
     html += '<p class="empty">Rien de prévu aujourd\'hui</p>'
   }
   aFaire.forEach(t => {
-    const recurrente = t.recurrence && t.recurrence !== 'aucune'
-    const meta = [recurrente ? frequences[t.recurrence] : null, t.dernierFaitPar ? 'dernier : ' + escapeHtml(t.dernierFaitPar) : null]
-      .filter(Boolean).join(' · ')
+    const meta = [labelJourTache(t), t.dernierFaitPar ? 'dernier : ' + escapeHtml(t.dernierFaitPar) : null].filter(Boolean).join(' · ')
     html += `<div class="row">
       <button type="button" class="check" data-tache="${t.id}" aria-label="${escapeHtml(t.texte)} : marquer fait"><i class="ph-fill ph-check"></i></button>
       <div class="main"><div class="titre">${escapeHtml(t.texte)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}</div>
-      <i class="ph ph-broom"></i>
+      <button type="button" class="ghost-btn" data-detail-tache="${t.id}" aria-label="${tacheOuverte === t.id ? 'Fermer les détails' : 'Voir les détails'}"><i class="ph ph-${tacheOuverte === t.id ? 'caret-up' : 'caret-down'}"></i></button>
+      <button type="button" class="ghost-btn" data-suppr-tache="${t.id}" aria-label="Supprimer ${escapeHtml(t.texte)}"><i class="ph ph-x"></i></button>
     </div>`
+    if (tacheOuverte === t.id) {
+      html += `<div class="edit-panel">
+        <select class="input" id="tache-edit-recurrence-${t.id}">
+          <option value="aucune"${!t.recurrence || t.recurrence === 'aucune' ? ' selected' : ''}>Une fois</option>
+          <option value="hebdo"${t.recurrence === 'hebdo' ? ' selected' : ''}>Chaque semaine</option>
+          <option value="mensuel"${t.recurrence === 'mensuel' ? ' selected' : ''}>Chaque mois</option>
+        </select>
+        <input class="input" id="tache-edit-jour-date-${t.id}" type="date" value="${!t.recurrence || t.recurrence === 'aucune' ? (t.jour || '') : ''}" style="display:${!t.recurrence || t.recurrence === 'aucune' ? '' : 'none'}">
+        <select class="input" id="tache-edit-jour-semaine-${t.id}" style="display:${t.recurrence === 'hebdo' ? '' : 'none'}">
+          ${noms_jours.map((n, i) => `<option value="${i}"${t.recurrence === 'hebdo' && Number(t.jour) === i ? ' selected' : ''}>${n}</option>`).join('')}
+        </select>
+        <input class="input" id="tache-edit-jour-mois-${t.id}" type="number" min="1" max="31" placeholder="Jour du mois" value="${t.recurrence === 'mensuel' ? (t.jour || '') : ''}" style="display:${t.recurrence === 'mensuel' ? '' : 'none'}">
+        <div class="edit-actions"><button type="button" class="btn btn-sm" data-save-tache="${t.id}">Enregistrer</button></div>
+      </div>`
+    }
   })
   if (souper) {
     html += `<div class="row">
@@ -323,6 +380,21 @@ function renderAccueil() {
   }
 
   html += `</div>
+    <div class="form-grid">
+      <input class="input full" id="tache-texte" placeholder="Nouvelle tâche">
+      <select class="input" id="tache-recurrence">
+        <option value="aucune">Une fois</option>
+        <option value="hebdo">Chaque semaine</option>
+        <option value="mensuel">Chaque mois</option>
+      </select>
+      <input class="input" id="tache-jour-date" type="date">
+      <select class="input" id="tache-jour-semaine" style="display:none">
+        ${noms_jours.map((n, i) => `<option value="${i}">${n}</option>`).join('')}
+      </select>
+      <input class="input" id="tache-jour-mois" type="number" min="1" max="31" placeholder="Jour du mois" style="display:none">
+      <button type="button" class="btn" id="tache-ajouter"><i class="ph ph-plus"></i></button>
+    </div>
+
     <div class="tiles">
       <button type="button" class="tile" data-go="depenses">
         <div class="label"><i class="ph ph-wallet"></i>Solde</div>
@@ -341,13 +413,78 @@ function renderAccueil() {
   container.innerHTML = html
   brancherEnTete(container)
   container.querySelector('#date-cible').onchange = (e) => enregistrerDoc(refConfig, { dateCible: e.target.value }, { merge: true })
+
+  container.querySelector('#cal-prec').onclick = () => { calMois = decalerMois(calMois, -1); renderAccueil() }
+  container.querySelector('#cal-suiv').onclick = () => { calMois = decalerMois(calMois, 1); renderAccueil() }
+  container.querySelectorAll('[data-jour]').forEach(el => {
+    el.onclick = () => ouvrirJour(el.dataset.jour)
+  })
+
   container.querySelectorAll('[data-tache]').forEach(el => {
     el.onclick = () => cocherTache(el.dataset.tache)
   })
+  container.querySelectorAll('[data-detail-tache]').forEach(el => {
+    el.onclick = () => {
+      tacheOuverte = tacheOuverte === el.dataset.detailTache ? null : el.dataset.detailTache
+      renderAccueil()
+    }
+  })
+  container.querySelectorAll('[data-suppr-tache]').forEach(el => {
+    el.onclick = () => {
+      if (confirm('Supprimer cette tâche ?')) supprimerDoc(doc(refTaches, el.dataset.supprTache))
+    }
+  })
+  container.querySelectorAll('[data-save-tache]').forEach(el => {
+    el.onclick = () => {
+      const id = el.dataset.saveTache
+      const recurrence = container.querySelector(`#tache-edit-recurrence-${id}`).value
+      let jour = ''
+      if (recurrence === 'aucune') jour = container.querySelector(`#tache-edit-jour-date-${id}`).value
+      else if (recurrence === 'hebdo') jour = container.querySelector(`#tache-edit-jour-semaine-${id}`).value
+      else if (recurrence === 'mensuel') jour = container.querySelector(`#tache-edit-jour-mois-${id}`).value.trim()
+      modifierDoc(doc(refTaches, id), { recurrence, jour })
+      tacheOuverte = null
+      renderAccueil()
+    }
+  })
+  if (tacheOuverte) {
+    const sel = container.querySelector(`#tache-edit-recurrence-${tacheOuverte}`)
+    if (sel) {
+      sel.onchange = () => {
+        container.querySelector(`#tache-edit-jour-date-${tacheOuverte}`).style.display = sel.value === 'aucune' ? '' : 'none'
+        container.querySelector(`#tache-edit-jour-semaine-${tacheOuverte}`).style.display = sel.value === 'hebdo' ? '' : 'none'
+        container.querySelector(`#tache-edit-jour-mois-${tacheOuverte}`).style.display = sel.value === 'mensuel' ? '' : 'none'
+      }
+    }
+  }
+
   container.querySelectorAll('[data-go]').forEach(el => {
     el.onclick = () => goTo(el.dataset.go)
   })
   container.querySelector('#accueil-magasiner').onclick = ouvrirMagasinage
+
+  const recSelect = container.querySelector('#tache-recurrence')
+  const jourDate = container.querySelector('#tache-jour-date')
+  const jourSemaine = container.querySelector('#tache-jour-semaine')
+  const jourMois = container.querySelector('#tache-jour-mois')
+  recSelect.onchange = () => {
+    jourDate.style.display = recSelect.value === 'aucune' ? '' : 'none'
+    jourSemaine.style.display = recSelect.value === 'hebdo' ? '' : 'none'
+    jourMois.style.display = recSelect.value === 'mensuel' ? '' : 'none'
+  }
+  const ajouterTache = () => {
+    const texte = container.querySelector('#tache-texte').value.trim()
+    if (!texte) return
+    const recurrence = recSelect.value
+    let jour = ''
+    if (recurrence === 'aucune') jour = jourDate.value
+    else if (recurrence === 'hebdo') jour = jourSemaine.value
+    else if (recurrence === 'mensuel') jour = jourMois.value.trim()
+    ajouterDoc(refTaches, { texte, recurrence, jour, fait: false })
+    container.querySelector('#tache-texte').value = ''
+  }
+  container.querySelector('#tache-ajouter').onclick = ajouterTache
+  container.querySelector('#tache-texte').onkeydown = (e) => { if (e.key === 'Enter') ajouterTache() }
 }
 
 // — checklist —
@@ -453,6 +590,139 @@ function cocherTache(id) {
   } else {
     modifierDoc(doc(refTaches, id), { fait: !item.fait, faitPar: !item.fait ? currentName() : null })
   }
+}
+
+// une tâche sans jour assigné reste "toujours active" (comportement historique, avant l'ajout du calendrier)
+function tacheTombeLe(t, date) {
+  if (t.jour === undefined || t.jour === null || t.jour === '') return true
+  if (t.recurrence === 'hebdo') return date.getDay() === Number(t.jour)
+  if (t.recurrence === 'mensuel') return date.getDate() === Number(t.jour)
+  return formatDateISO(date) === t.jour
+}
+
+function labelJourTache(t) {
+  if (t.recurrence === 'hebdo' && (t.jour || t.jour === 0)) return 'chaque ' + noms_jours[Number(t.jour)]
+  if (t.recurrence === 'mensuel' && t.jour) return 'le ' + t.jour + ' de chaque mois'
+  if (t.recurrence === 'aucune' && t.jour) {
+    const d = new Date(t.jour + 'T00:00:00')
+    return `${noms_jours[d.getDay()]} ${d.getDate()} ${abrev_mois[d.getMonth()]}`
+  }
+  return t.recurrence && frequences[t.recurrence] ? frequences[t.recurrence] : ''
+}
+
+// — calendrier —
+
+function recurrenteTombeLe(r, date) {
+  if (!r.jourPaiement) return false
+  return Number(r.jourPaiement) === date.getDate()
+}
+
+function correspondALaDate(quand, date) {
+  if (!quand) return false
+  const texte = quand.toLowerCase()
+  if (texte.includes(noms_jours[date.getDay()])) return true
+  const jourMois = date.getDate()
+  if (jourMois === 1 && /\b1er\b/.test(texte)) return true
+  return new RegExp(`\\b${jourMois}\\b`).test(texte)
+}
+
+function joursDuMoisCalendrier(cle) {
+  const [an, mois] = cle.split('-').map(Number)
+  const premier = new Date(an, mois - 1, 1)
+  const dernier = new Date(an, mois, 0)
+  const decalage = (premier.getDay() + 6) % 7
+  const jours = []
+  for (let i = 0; i < decalage; i++) jours.push(null)
+  for (let j = 1; j <= dernier.getDate(); j++) jours.push(new Date(an, mois - 1, j))
+  return jours
+}
+
+function decalerMois(cle, delta) {
+  const [an, mois] = cle.split('-').map(Number)
+  const d = new Date(an, mois - 1 + delta, 1)
+  return formatDateISO(d).slice(0, 7)
+}
+
+function contenuDuJour(date) {
+  const iso = formatDateISO(date)
+  const repasJour = repasItems.find(r => r.id === iso) || {}
+  const aRepas = moments.some(m => repasJour[m.id] && repasJour[m.id].texte)
+  const taches = tachesItems.filter(t => !t.fait && tacheTombeLe(t, date))
+  const recurrentes = depensesItems.filter(r => r.recurrente && recurrenteTombeLe(r, date))
+  const rappelsJour = rappels.filter(r => r.actif && correspondALaDate(r.quand, date))
+  return { iso, repasJour, aRepas, taches, recurrentes, rappelsJour }
+}
+
+function fermerJour() {
+  calJourOuvert = null
+  document.getElementById('jour-overlay').style.display = 'none'
+}
+
+function ouvrirJour(iso) {
+  calJourOuvert = iso
+  const el = document.getElementById('jour-overlay')
+  el.style.display = 'flex'
+  const date = new Date(iso + 'T00:00:00')
+  const { repasJour, taches, recurrentes, rappelsJour } = contenuDuJour(date)
+  const cleMois = iso.slice(0, 7)
+
+  el.innerHTML = `<div class="sheet-bas">
+    <div class="sheet-head">
+      <div><div class="titre">${noms_jours[date.getDay()]} ${date.getDate()} ${noms_mois[date.getMonth()]}</div><div class="meta">Récap de la journée</div></div>
+      <button type="button" class="icon-btn" id="fermer-jour" aria-label="Fermer"><i class="ph ph-x"></i></button>
+    </div>
+
+    <div class="section-title"><span>Repas</span></div>
+    <div class="card card-pad">
+      ${moments.map(m => {
+        const r = repasJour[m.id]
+        return `<div class="row" style="padding:8px 0;min-height:auto">
+          <div class="main"><div class="titre" style="font-size:13.5px">${m.label}</div></div>
+          <div class="meta">${r && r.texte ? escapeHtml(r.texte) : '—'}</div>
+        </div>`
+      }).join('')}
+    </div>
+
+    <div class="section-title"><span>Tâches</span><span>${taches.length}</span></div>
+    <div class="card">
+      ${taches.length === 0 ? '<p class="empty">Rien à faire ce jour-là</p>' : taches.map(t => `
+        <div class="row">
+          <button type="button" class="check" data-jour-tache="${t.id}" aria-label="${escapeHtml(t.texte)} : marquer fait"><i class="ph-fill ph-check"></i></button>
+          <div class="main"><div class="titre">${escapeHtml(t.texte)}</div></div>
+        </div>`).join('')}
+    </div>
+
+    <div class="section-title"><span>Paiements</span></div>
+    <div class="card">
+      ${recurrentes.length === 0 && rappelsJour.length === 0 ? '<p class="empty">Rien de prévu</p>' : ''}
+      ${recurrentes.map(r => {
+        const paye = !!(r.moisPayes && r.moisPayes[cleMois])
+        return `<div class="row">
+          <button type="button" class="check${paye ? ' on' : ''}" data-jour-rec="${r.id}" aria-label="${escapeHtml(r.desc)} : ${paye ? 'marquer non payé' : 'marquer payé'}"><i class="ph-fill ph-check"></i></button>
+          <div class="main"><div class="titre">${escapeHtml(r.desc)}</div><div class="meta">${argent(r.montant)}</div></div>
+        </div>`
+      }).join('')}
+      ${rappelsJour.map(r => `
+        <div class="row">
+          <div class="pill-icon" style="background:transparent;color:var(--accent-light)"><i class="ph ${r.icon || 'ph-bell'}"></i></div>
+          <div class="main"><div class="titre" style="font-size:14.5px">${escapeHtml(r.nom)}</div><div class="meta">${escapeHtml(r.quand)}</div></div>
+        </div>`).join('')}
+    </div>
+  </div>`
+
+  el.onclick = (e) => { if (e.target.id === 'jour-overlay') fermerJour() }
+  el.querySelector('#fermer-jour').onclick = fermerJour
+  el.querySelectorAll('[data-jour-tache]').forEach(b => {
+    b.onclick = () => cocherTache(b.dataset.jourTache)
+  })
+  el.querySelectorAll('[data-jour-rec]').forEach(b => {
+    b.onclick = () => {
+      const r = recurrentes.find(x => x.id === b.dataset.jourRec)
+      const moisPayes = Object.assign({}, r.moisPayes || {})
+      moisPayes[cleMois] = !moisPayes[cleMois]
+      modifierDoc(doc(refDepenses, r.id), { moisPayes })
+    }
+  })
 }
 
 // — repas —
@@ -980,11 +1250,19 @@ function renderDepenses() {
   if (recurrentes.length === 0) html += '<p class="empty">Aucune dépense récurrente</p>'
   recurrentes.forEach(r => {
     const paye = !!(r.moisPayes && r.moisPayes[moisSelectionne])
+    const jourTexte = r.jourPaiement ? `· le ${r.jourPaiement}` : ''
     html += `<div class="row">
       <button type="button" class="check${paye ? ' on' : ''}" data-rec="${r.id}" ${moisSelectionne === 'tous' ? 'disabled style="opacity:.45"' : ''} aria-label="${escapeHtml(r.desc)} : ${paye ? 'marquer non payé' : 'marquer payé'}"><i class="ph-fill ph-check"></i></button>
-      <div class="main"><div class="titre">${escapeHtml(r.desc)}</div><div class="meta">${argent(r.montant)} · ${escapeHtml(r.payeur)}<span class="tag">${escapeHtml(categorieDe(r))}</span></div></div>
+      <div class="main"><div class="titre">${escapeHtml(r.desc)}</div><div class="meta">${argent(r.montant)} · ${escapeHtml(r.payeur)}${jourTexte}<span class="tag">${escapeHtml(categorieDe(r))}</span></div></div>
+      <button type="button" class="ghost-btn" data-detail-rec="${r.id}" aria-label="${recOuvert === r.id ? 'Fermer les détails' : 'Modifier le jour de paiement'}"><i class="ph ph-${recOuvert === r.id ? 'caret-up' : 'caret-down'}"></i></button>
       <button type="button" class="ghost-btn" data-rec-suppr="${r.id}" aria-label="Supprimer ${escapeHtml(r.desc)}"><i class="ph ph-x"></i></button>
     </div>`
+    if (recOuvert === r.id) {
+      html += `<div class="edit-panel">
+        <input class="input" id="rec-edit-jour-${r.id}" type="number" min="1" max="31" placeholder="Jour du mois (ex: 1 pour le loyer)" value="${r.jourPaiement || ''}">
+        <div class="edit-actions"><button type="button" class="btn btn-sm" data-save-rec="${r.id}">Enregistrer</button></div>
+      </div>`
+    }
   })
 
   html += `</div>
@@ -993,6 +1271,7 @@ function renderDepenses() {
       <input class="input" id="recurrente-montant" placeholder="Montant" type="number" step="0.01">
       <input class="input" id="recurrente-payeur" placeholder="Payé par" value="${escapeHtml(currentName())}">
       <select class="input" id="recurrente-categorie">${categoriesDepenses.map(c => `<option value="${c.cat}">${c.cat}</option>`).join('')}</select>
+      <input class="input" id="recurrente-jour" type="number" min="1" max="31" placeholder="Jour du mois (optionnel)">
       <button type="button" class="btn btn-quiet" id="recurrente-ajouter"><i class="ph ph-plus"></i>Ajouter</button>
     </div>
   </div>`
@@ -1034,6 +1313,21 @@ function renderDepenses() {
       if (confirm('Supprimer cette dépense récurrente ?')) supprimerDoc(doc(refDepenses, el.dataset.recSuppr))
     }
   })
+  container.querySelectorAll('[data-detail-rec]').forEach(el => {
+    el.onclick = () => {
+      recOuvert = recOuvert === el.dataset.detailRec ? null : el.dataset.detailRec
+      renderDepenses()
+    }
+  })
+  container.querySelectorAll('[data-save-rec]').forEach(el => {
+    el.onclick = () => {
+      const id = el.dataset.saveRec
+      const jourPaiement = container.querySelector(`#rec-edit-jour-${id}`).value.trim()
+      modifierDoc(doc(refDepenses, id), { jourPaiement })
+      recOuvert = null
+      renderDepenses()
+    }
+  })
   container.querySelector('#recurrente-ajouter').onclick = () => {
     const desc = container.querySelector('#recurrente-desc').value.trim()
     const montant = parseFloat(container.querySelector('#recurrente-montant').value)
@@ -1042,6 +1336,7 @@ function renderDepenses() {
     ajouterDoc(refDepenses, {
       desc, montant, payeur,
       categorie: container.querySelector('#recurrente-categorie').value,
+      jourPaiement: container.querySelector('#recurrente-jour').value.trim(),
       recurrente: true,
       moisPayes: {}
     })
@@ -1062,13 +1357,7 @@ function demanderPermissionNotif() {
 }
 
 function correspondAujourdhui(quand) {
-  if (!quand) return false
-  const texte = quand.toLowerCase()
-  const maintenant = new Date()
-  if (texte.includes(noms_jours[maintenant.getDay()])) return true
-  const jourMois = maintenant.getDate()
-  if (jourMois === 1 && /\b1er\b/.test(texte)) return true
-  return new RegExp(`\\b${jourMois}\\b`).test(texte)
+  return correspondALaDate(quand, new Date())
 }
 
 function verifierRappelsDuJour() {
@@ -1169,6 +1458,7 @@ function rendre() {
   majBadge()
   if (magasinageOuvert) renderMagasinage()
   if (document.getElementById('rappels-overlay').style.display === 'flex') ouvrirRappels()
+  if (calJourOuvert && document.getElementById('jour-overlay').style.display === 'flex') ouvrirJour(calJourOuvert)
   goTo(ongletActuel)
 }
 
