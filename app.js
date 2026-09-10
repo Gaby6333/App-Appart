@@ -221,9 +221,11 @@ function enTete(titre, sous, actions) {
   </div>`
 }
 
-const boutonsEnTete = `
+function boutonsEnTete() {
+  return `
   <button type="button" class="icon-btn" data-action="rappels"><i class="ph ph-bell"></i></button>
   <button type="button" class="icon-btn" data-action="profil">${escapeHtml(currentName().charAt(0) || '?')}</button>`
+}
 
 function brancherEnTete(container) {
   const rappelsBtn = container.querySelector('[data-action="rappels"]')
@@ -264,7 +266,7 @@ function renderAccueil() {
       <div class="kicker">${noms_jours[maintenant.getDay()]} ${maintenant.getDate()} ${noms_mois[maintenant.getMonth()]}</div>
       <h1>Aujourd'hui</h1>
     </div>
-    <div class="head-actions">${boutonsEnTete}</div>
+    <div class="head-actions">${boutonsEnTete()}</div>
   </div>
   <div class="body">
     <div class="hero">
@@ -339,7 +341,7 @@ function renderChecklist() {
   const total = checklistItems.length
   const pct = total ? Math.round((faits / total) * 100) : 0
 
-  let html = enTete('Checklist', `${faits} / ${total} · ${total - faits} items restants`, boutonsEnTete) + '<div class="body">'
+  let html = enTete('Checklist', `${faits} / ${total} · ${total - faits} items restants`, boutonsEnTete()) + '<div class="body">'
 
   categoriesChecklist.forEach(({ cat, icon }) => {
     const liste = checklistItems.filter(i => i.categorie === cat)
@@ -857,7 +859,7 @@ function renderDepenses() {
   const max = Math.max(1, ...historique.map(h => h.total))
   const moyenne = historique.reduce((a, h) => a + h.total, 0) / 6
 
-  let html = enTete('Dépenses', formatMois(moisSelectionne === 'tous' ? moisActuelCle() : moisSelectionne), boutonsEnTete)
+  let html = enTete('Dépenses', formatMois(moisSelectionne === 'tous' ? moisActuelCle() : moisSelectionne), boutonsEnTete())
 
   html += `<div class="body">
     <div class="hero">

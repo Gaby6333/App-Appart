@@ -317,6 +317,10 @@ a {
   padding: 0;
 }
 
+.check i {
+  color: inherit;
+}
+
 .check:hover {
   border-color: var(--accent);
 }
