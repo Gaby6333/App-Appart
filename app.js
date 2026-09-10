@@ -165,6 +165,7 @@ let calMois = moisActuelCle()
 let calJourOuvert = null
 let tacheOuverte = null
 let recOuvert = null
+let depensesOnglet = 'resume'
 
 function currentName() {
   return localStorage.getItem('app-appart-nom') || ''
@@ -1109,7 +1110,7 @@ function calculerReglement(items) {
     parPersonne[i.payeur] = (parPersonne[i.payeur] || 0) + i.montant
   })
   const noms = Object.keys(parPersonne)
-  if (noms.length === 0) return { total, transactions: [] }
+  if (noms.length === 0) return { total, transactions: [], parPersonne }
   const part = total / noms.length
   const soldes = noms.map(n => ({ nom: n, solde: parPersonne[n] - part }))
   const creanciers = soldes.filter(s => s.solde > 0.01).sort((a, b) => b.solde - a.solde)
@@ -1127,7 +1128,7 @@ function calculerReglement(items) {
     if (Math.abs(d.solde) < 0.01) i++
     if (Math.abs(c.solde) < 0.01) j++
   }
-  return { total, transactions }
+  return { total, transactions, parPersonne }
 }
 
 function sixDerniersMois() {
@@ -1170,27 +1171,44 @@ function exporterDepensesCSV() {
 function renderDepenses() {
   const container = document.getElementById('section-depenses')
   const items = itemsPourMois(moisSelectionne)
-  const { total, transactions } = calculerReglement(items)
+  const { total, transactions, parPersonne } = calculerReglement(items)
   const t0 = transactions[0]
+  const noms = Object.keys(parPersonne)
   const historique = sixDerniersMois()
   const max = Math.max(1, ...historique.map(h => h.total))
   const moyenne = historique.reduce((a, h) => a + h.total, 0) / 6
+  const recurrentes = depensesItems.filter(i => i.recurrente)
 
   let html = enTete('Dépenses', formatMois(moisSelectionne === 'tous' ? moisActuelCle() : moisSelectionne), `
     <button type="button" class="icon-btn" id="exporter-depenses" aria-label="Exporter en CSV"><i class="ph ph-download-simple"></i></button>
     ${boutonsEnTete()}`)
 
   html += `<div class="body">
-    <div class="hero">
-      <div class="legend">${items.length === 0 ? 'Aucune dépense pour cette période' : (t0 ? `${escapeHtml(t0.de)} doit à ${escapeHtml(t0.a)}` : 'Vous êtes à égalité')}</div>
-      <div class="montant">${t0 ? argent(t0.montant) : argent(0)}</div>
-      <div class="progress-legend" style="margin-top:14px"><span>${argent(total)} au total ce mois-ci</span></div>
+    <div class="segment">
+      <button type="button" class="segment-btn${depensesOnglet === 'resume' ? ' on' : ''}" data-onglet-dep="resume">Résumé</button>
+      <button type="button" class="segment-btn${depensesOnglet === 'historique' ? ' on' : ''}" data-onglet-dep="historique">Historique</button>
+      <button type="button" class="segment-btn${depensesOnglet === 'recurrentes' ? ' on' : ''}" data-onglet-dep="recurrentes">Récurrentes</button>
     </div>
 
     <select class="input" id="depenses-mois">
       <option value="tous"${moisSelectionne === 'tous' ? ' selected' : ''}>Tous les mois</option>
       ${moisDisponibles().map(m => `<option value="${m}"${m === moisSelectionne ? ' selected' : ''}>${formatMois(m)}</option>`).join('')}
-    </select>
+    </select>`
+
+  if (depensesOnglet === 'resume') {
+    html += `<div class="hero">`
+    if (noms.length === 0) {
+      html += `<div class="legend">Aucune dépense pour cette période</div>`
+    } else {
+      html += `<div class="repartition">
+        ${noms.map(n => `<div class="repartition-ligne"><span>${escapeHtml(n)} a payé</span><strong>${argent(parPersonne[n])}</strong></div>`).join('')}
+      </div>
+      <div class="progress-legend" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--line-soft)">
+        <span>${t0 ? `${escapeHtml(t0.de)} doit ${argent(t0.montant)} à ${escapeHtml(t0.a)}` : 'Vous êtes à égalité, rien à régler'}</span>
+      </div>`
+    }
+    html += `<div class="progress-legend" style="margin-top:10px"><span>${argent(total)} au total ce mois-ci</span></div>
+    </div>
 
     <div class="section-title"><span>Six derniers mois</span><span>moy. ${argent(moyenne)}</span></div>
     <div class="card card-pad">
@@ -1206,66 +1224,70 @@ function renderDepenses() {
     <div class="section-title"><span>Par catégorie</span></div>
     <div class="card card-pad">`
 
-  const parCat = categoriesDepenses.map(c => ({
-    cat: c.cat,
-    total: items.filter(i => categorieDe(i) === c.cat).reduce((a, i) => a + i.montant, 0)
-  })).filter(c => c.total > 0)
+    const parCat = categoriesDepenses.map(c => ({
+      cat: c.cat,
+      total: items.filter(i => categorieDe(i) === c.cat).reduce((a, i) => a + i.montant, 0)
+    })).filter(c => c.total > 0)
 
-  if (parCat.length === 0) {
-    html += '<p class="empty">Rien à afficher</p>'
-  } else {
-    const maxCat = Math.max(...parCat.map(c => c.total))
-    parCat.forEach(c => {
-      html += `<div class="bar-cat">
-        <div class="l"><span>${c.cat}</span><span>${argent(c.total)}</span></div>
-        <div class="t"><span style="width:${Math.round((c.total / maxCat) * 100)}%"></span></div>
-      </div>`
-    })
+    if (parCat.length === 0) {
+      html += '<p class="empty">Rien à afficher</p>'
+    } else {
+      const maxCat = Math.max(...parCat.map(c => c.total))
+      parCat.forEach(c => {
+        html += `<div class="bar-cat">
+          <div class="l"><span>${c.cat}</span><span>${argent(c.total)}</span></div>
+          <div class="t"><span style="width:${Math.round((c.total / maxCat) * 100)}%"></span></div>
+        </div>`
+      })
+    }
+    html += '</div>'
   }
 
-  html += '</div><div class="section-title"><span>Ce mois-ci</span></div><div class="card">'
-  if (items.length === 0) html += '<p class="empty">Aucune dépense pour cette période</p>'
-  items.forEach(item => {
-    html += `<div class="row">
-      <div class="pill-icon"><i class="ph ${iconeDepense(categorieDe(item))}"></i></div>
-      <div class="main"><div class="titre">${escapeHtml(item.desc)}</div><div class="meta">payé par ${escapeHtml(item.payeur)}${item.instance ? ' · récurrent' : ''}</div></div>
-      <span class="montant-cell">${argent(item.montant)}</span>
-      ${item.instance ? '' : `<button type="button" class="ghost-btn" data-dep-suppr="${item.id}" aria-label="Supprimer la dépense ${escapeHtml(item.desc)}"><i class="ph ph-x"></i></button>`}
-    </div>`
-  })
-
-  html += `</div>
+  if (depensesOnglet === 'historique') {
+    html += '<div class="section-title"><span>Dépenses de la période</span></div><div class="card">'
+    if (items.length === 0) html += '<p class="empty">Aucune dépense pour cette période</p>'
+    items.forEach(item => {
+      html += `<div class="row">
+        <div class="pill-icon"><i class="ph ${iconeDepense(categorieDe(item))}"></i></div>
+        <div class="main"><div class="titre">${escapeHtml(item.desc)}</div><div class="meta">payé par ${escapeHtml(item.payeur)}${item.instance ? ' · récurrent' : ''}</div></div>
+        <span class="montant-cell">${argent(item.montant)}</span>
+        ${item.instance ? '' : `<button type="button" class="ghost-btn" data-dep-suppr="${item.id}" aria-label="Supprimer la dépense ${escapeHtml(item.desc)}"><i class="ph ph-x"></i></button>`}
+      </div>`
+    })
+    html += `</div>
+    <p class="meta" style="margin:12px 2px 8px">Une dépense ponctuelle (sortie, achat...) :</p>
     <div class="form-grid">
       <input class="input full" id="depenses-desc" placeholder="Description">
       <input class="input" id="depenses-montant" placeholder="Montant" type="number" step="0.01">
       <input class="input" id="depenses-payeur" placeholder="Payé par" value="${escapeHtml(currentName())}">
       <select class="input" id="depenses-categorie">${categoriesDepenses.map(c => `<option value="${c.cat}">${c.cat}</option>`).join('')}</select>
       <button type="button" class="btn" id="depenses-ajouter"><i class="ph ph-plus"></i>Ajouter</button>
-    </div>
+    </div>`
+  }
 
+  if (depensesOnglet === 'recurrentes') {
+    html += `<p class="meta" style="margin:0 2px 12px">Les dépenses qui reviennent chaque mois (loyer, internet...). Coche « payé » une fois par mois, pas besoin de la retaper.</p>
     <div class="section-title"><span>Dépenses récurrentes</span></div>
     <div class="card">`
-
-  const recurrentes = depensesItems.filter(i => i.recurrente)
-  if (recurrentes.length === 0) html += '<p class="empty">Aucune dépense récurrente</p>'
-  recurrentes.forEach(r => {
-    const paye = !!(r.moisPayes && r.moisPayes[moisSelectionne])
-    const jourTexte = r.jourPaiement ? `· le ${r.jourPaiement}` : ''
-    html += `<div class="row">
-      <button type="button" class="check${paye ? ' on' : ''}" data-rec="${r.id}" ${moisSelectionne === 'tous' ? 'disabled style="opacity:.45"' : ''} aria-label="${escapeHtml(r.desc)} : ${paye ? 'marquer non payé' : 'marquer payé'}"><i class="ph-fill ph-check"></i></button>
-      <div class="main"><div class="titre">${escapeHtml(r.desc)}</div><div class="meta">${argent(r.montant)} · ${escapeHtml(r.payeur)}${jourTexte}<span class="tag">${escapeHtml(categorieDe(r))}</span></div></div>
-      <button type="button" class="ghost-btn" data-detail-rec="${r.id}" aria-label="${recOuvert === r.id ? 'Fermer les détails' : 'Modifier le jour de paiement'}"><i class="ph ph-${recOuvert === r.id ? 'caret-up' : 'caret-down'}"></i></button>
-      <button type="button" class="ghost-btn" data-rec-suppr="${r.id}" aria-label="Supprimer ${escapeHtml(r.desc)}"><i class="ph ph-x"></i></button>
-    </div>`
-    if (recOuvert === r.id) {
-      html += `<div class="edit-panel">
-        <input class="input" id="rec-edit-jour-${r.id}" type="number" min="1" max="31" placeholder="Jour du mois (ex: 1 pour le loyer)" value="${r.jourPaiement || ''}">
-        <div class="edit-actions"><button type="button" class="btn btn-sm" data-save-rec="${r.id}">Enregistrer</button></div>
+    if (recurrentes.length === 0) html += '<p class="empty">Aucune dépense récurrente</p>'
+    recurrentes.forEach(r => {
+      const paye = !!(r.moisPayes && r.moisPayes[moisSelectionne])
+      const jourTexte = r.jourPaiement ? ` · le ${r.jourPaiement}` : ''
+      html += `<div class="row">
+        <button type="button" class="check${paye ? ' on' : ''}" data-rec="${r.id}" ${moisSelectionne === 'tous' ? 'disabled style="opacity:.45"' : ''} aria-label="${escapeHtml(r.desc)} : ${paye ? 'marquer non payé' : 'marquer payé'}"><i class="ph-fill ph-check"></i></button>
+        <div class="main"><div class="titre">${escapeHtml(r.desc)}</div><div class="meta">${argent(r.montant)} · ${escapeHtml(r.payeur)}${jourTexte}<span class="tag">${escapeHtml(categorieDe(r))}</span></div></div>
+        <button type="button" class="ghost-btn" data-detail-rec="${r.id}" aria-label="${recOuvert === r.id ? 'Fermer les détails' : 'Modifier le jour de paiement'}"><i class="ph ph-${recOuvert === r.id ? 'caret-up' : 'caret-down'}"></i></button>
+        <button type="button" class="ghost-btn" data-rec-suppr="${r.id}" aria-label="Supprimer ${escapeHtml(r.desc)}"><i class="ph ph-x"></i></button>
       </div>`
-    }
-  })
-
-  html += `</div>
+      if (recOuvert === r.id) {
+        html += `<div class="edit-panel">
+          <input class="input" id="rec-edit-jour-${r.id}" type="number" min="1" max="31" placeholder="Jour du mois (ex: 1 pour le loyer)" value="${r.jourPaiement || ''}">
+          <div class="edit-actions"><button type="button" class="btn btn-sm" data-save-rec="${r.id}">Enregistrer</button></div>
+        </div>`
+      }
+    })
+    html += `</div>
+    <p class="meta" style="margin:12px 2px 8px">Une nouvelle dépense récurrente :</p>
     <div class="form-grid">
       <input class="input full" id="recurrente-desc" placeholder="Description (ex: Loyer)">
       <input class="input" id="recurrente-montant" placeholder="Montant" type="number" step="0.01">
@@ -1273,8 +1295,10 @@ function renderDepenses() {
       <select class="input" id="recurrente-categorie">${categoriesDepenses.map(c => `<option value="${c.cat}">${c.cat}</option>`).join('')}</select>
       <input class="input" id="recurrente-jour" type="number" min="1" max="31" placeholder="Jour du mois (optionnel)">
       <button type="button" class="btn btn-quiet" id="recurrente-ajouter"><i class="ph ph-plus"></i>Ajouter</button>
-    </div>
-  </div>`
+    </div>`
+  }
+
+  html += '</div>'
 
   container.innerHTML = html
   brancherEnTete(container)
@@ -1283,63 +1307,77 @@ function renderDepenses() {
     moisSelectionne = e.target.value
     renderDepenses()
   }
-  container.querySelectorAll('[data-dep-suppr]').forEach(el => {
+  container.querySelectorAll('[data-onglet-dep]').forEach(el => {
     el.onclick = () => {
-      if (confirm('Supprimer cette dépense ?')) supprimerDoc(doc(refDepenses, el.dataset.depSuppr))
+      depensesOnglet = el.dataset.ongletDep
+      renderDepenses()
     }
   })
-  container.querySelector('#depenses-ajouter').onclick = () => {
-    const desc = container.querySelector('#depenses-desc').value.trim()
-    const montant = parseFloat(container.querySelector('#depenses-montant').value)
-    const payeur = container.querySelector('#depenses-payeur').value.trim()
-    if (!desc || !montant || !payeur) return
-    ajouterDoc(refDepenses, {
-      desc, montant, payeur,
-      categorie: container.querySelector('#depenses-categorie').value,
-      date: formatDateISO(new Date()),
-      recurrente: false
+
+  const depAjouter = container.querySelector('#depenses-ajouter')
+  if (depAjouter) {
+    container.querySelectorAll('[data-dep-suppr]').forEach(el => {
+      el.onclick = () => {
+        if (confirm('Supprimer cette dépense ?')) supprimerDoc(doc(refDepenses, el.dataset.depSuppr))
+      }
     })
+    depAjouter.onclick = () => {
+      const desc = container.querySelector('#depenses-desc').value.trim()
+      const montant = parseFloat(container.querySelector('#depenses-montant').value)
+      const payeur = container.querySelector('#depenses-payeur').value.trim()
+      if (!desc || !montant || !payeur) return
+      ajouterDoc(refDepenses, {
+        desc, montant, payeur,
+        categorie: container.querySelector('#depenses-categorie').value,
+        date: formatDateISO(new Date()),
+        recurrente: false
+      })
+    }
   }
-  container.querySelectorAll('[data-rec]').forEach(el => {
-    el.onclick = () => {
-      const r = recurrentes.find(x => x.id === el.dataset.rec)
-      const moisPayes = Object.assign({}, r.moisPayes || {})
-      moisPayes[moisSelectionne] = !moisPayes[moisSelectionne]
-      modifierDoc(doc(refDepenses, r.id), { moisPayes })
-    }
-  })
-  container.querySelectorAll('[data-rec-suppr]').forEach(el => {
-    el.onclick = () => {
-      if (confirm('Supprimer cette dépense récurrente ?')) supprimerDoc(doc(refDepenses, el.dataset.recSuppr))
-    }
-  })
-  container.querySelectorAll('[data-detail-rec]').forEach(el => {
-    el.onclick = () => {
-      recOuvert = recOuvert === el.dataset.detailRec ? null : el.dataset.detailRec
-      renderDepenses()
-    }
-  })
-  container.querySelectorAll('[data-save-rec]').forEach(el => {
-    el.onclick = () => {
-      const id = el.dataset.saveRec
-      const jourPaiement = container.querySelector(`#rec-edit-jour-${id}`).value.trim()
-      modifierDoc(doc(refDepenses, id), { jourPaiement })
-      recOuvert = null
-      renderDepenses()
-    }
-  })
-  container.querySelector('#recurrente-ajouter').onclick = () => {
-    const desc = container.querySelector('#recurrente-desc').value.trim()
-    const montant = parseFloat(container.querySelector('#recurrente-montant').value)
-    const payeur = container.querySelector('#recurrente-payeur').value.trim()
-    if (!desc || !montant || !payeur) return
-    ajouterDoc(refDepenses, {
-      desc, montant, payeur,
-      categorie: container.querySelector('#recurrente-categorie').value,
-      jourPaiement: container.querySelector('#recurrente-jour').value.trim(),
-      recurrente: true,
-      moisPayes: {}
+
+  const recAjouter = container.querySelector('#recurrente-ajouter')
+  if (recAjouter) {
+    container.querySelectorAll('[data-rec]').forEach(el => {
+      el.onclick = () => {
+        const r = recurrentes.find(x => x.id === el.dataset.rec)
+        const moisPayes = Object.assign({}, r.moisPayes || {})
+        moisPayes[moisSelectionne] = !moisPayes[moisSelectionne]
+        modifierDoc(doc(refDepenses, r.id), { moisPayes })
+      }
     })
+    container.querySelectorAll('[data-rec-suppr]').forEach(el => {
+      el.onclick = () => {
+        if (confirm('Supprimer cette dépense récurrente ?')) supprimerDoc(doc(refDepenses, el.dataset.recSuppr))
+      }
+    })
+    container.querySelectorAll('[data-detail-rec]').forEach(el => {
+      el.onclick = () => {
+        recOuvert = recOuvert === el.dataset.detailRec ? null : el.dataset.detailRec
+        renderDepenses()
+      }
+    })
+    container.querySelectorAll('[data-save-rec]').forEach(el => {
+      el.onclick = () => {
+        const id = el.dataset.saveRec
+        const jourPaiement = container.querySelector(`#rec-edit-jour-${id}`).value.trim()
+        modifierDoc(doc(refDepenses, id), { jourPaiement })
+        recOuvert = null
+        renderDepenses()
+      }
+    })
+    recAjouter.onclick = () => {
+      const desc = container.querySelector('#recurrente-desc').value.trim()
+      const montant = parseFloat(container.querySelector('#recurrente-montant').value)
+      const payeur = container.querySelector('#recurrente-payeur').value.trim()
+      if (!desc || !montant || !payeur) return
+      ajouterDoc(refDepenses, {
+        desc, montant, payeur,
+        categorie: container.querySelector('#recurrente-categorie').value,
+        jourPaiement: container.querySelector('#recurrente-jour').value.trim(),
+        recurrente: true,
+        moisPayes: {}
+      })
+    }
   }
 }
 

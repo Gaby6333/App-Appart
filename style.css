@@ -857,6 +857,54 @@ textarea.input {
   gap: 8px;
 }
 
+/* — segments (sous-onglets) — */
+
+.segment {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.segment-btn {
+  flex: 1;
+  text-align: center;
+  padding: 9px 0;
+  border-radius: 10px;
+  border: none;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line);
+  color: var(--ink-soft);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.segment-btn.on {
+  background: var(--accent-tint);
+  box-shadow: 0 0 0 1px var(--accent);
+  color: var(--accent-pale);
+}
+
+.repartition {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.repartition-ligne {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.repartition-ligne strong {
+  font-weight: 500;
+  color: var(--ink);
+  font-size: 16px;
+}
+
 /* — graphique — */
 
 .chart {
